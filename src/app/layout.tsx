@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import '../styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'Dsp Forms',
+  title: 'Project Flash',
   description: 'dsp form management system',
   icons: { icon: { url: '/filscap.jpg' } },
 }

@@ -14,7 +14,7 @@ const ROLE = {
 
 const generateCollectionId = (
   dspName: string,
-  existingRecords: DSPRecord[]
+  existingRecords: DSPRecord[],
 ) => {
   const prefix = dspName.trim().substring(0, 3).toUpperCase().padEnd(3, "X");
   const now = new Date();
@@ -23,7 +23,7 @@ const generateCollectionId = (
   const datePart = `${year}${month}`;
 
   const matches = existingRecords.filter(
-    (r) => r.DSP === dspName && r.Collection_ID?.includes(datePart)
+    (r) => r.DSP === dspName && r.Collection_ID?.includes(datePart),
   );
 
   const nextNumber = matches.length + 1;
@@ -46,9 +46,18 @@ interface DspData {
   Exchange_Rate: string;
   Peso_Value: string;
   Remarks: string;
+  Remarks2: string;
   DSP: string;
   billing_date: string;
   Collection_ID?: string;
+  "SI#": string;
+  "BI#": string;
+  Division: string;
+  Amount_Received: string;
+  Bank_Charge: string;
+  Total_Amount: string;
+  Year_Period: string;
+  Quarter_Period: string;
 }
 
 interface DSPRecord {
@@ -66,8 +75,17 @@ interface DSPRecord {
   Exchange_Rate: number | null;
   Peso_Value: number | null;
   Remarks: string;
+  Remarks2: string;
   DSP: string | null;
   billing_date: string | null;
+  "SI#": string;
+  "BI#": string;
+  Division: string;
+  Amount_Received: number | null;
+  Bank_Charge: number | null;
+  Total_Amount: number | null;
+  Year_Period: string | null;
+  Quarter_Period: string | null;
 }
 
 const DSP = [
@@ -121,8 +139,10 @@ const currencies = [
   "PHP",
 ];
 
-const currentYear = new Date().getFullYear();
-const monthlyOptions = [
+const START_YEAR = 2020;
+const END_YEAR = new Date().getFullYear();
+
+const months = [
   "January",
   "February",
   "March",
@@ -135,14 +155,20 @@ const monthlyOptions = [
   "October",
   "November",
   "December",
-  
-].map((m) => `${m} ${currentYear}`);
-const quarterlyOptions = [
-  `${currentYear}-Q1`,
-  `${currentYear}-Q2`,
-  `${currentYear}-Q3`,
-  `${currentYear}-Q4`,
 ];
+
+const monthlyOptions: string[] = [];
+const quarterlyOptions: string[] = [];
+
+for (let year = END_YEAR; year >= START_YEAR; year--) {
+  // months
+  for (const month of months) {
+    monthlyOptions.push(`${month} ${year}`);
+  }
+
+  // quarters
+  quarterlyOptions.push(`${year}-Q1`, `${year}-Q2`, `${year}-Q3`, `${year}-Q4`);
+}
 
 const dspCoverageMode: Record<string, "monthly" | "quarterly"> = {
   Spotify: "monthly",
@@ -176,7 +202,7 @@ function Section({
         disabled ? "opacity-50 pointer-events-none" : ""
       }`}
     >
-      <h2 className="font-bold text-xl mb-4">{title}</h2>
+      <h2 className="font-bold text-xl mb-4 ">{title}</h2>
       <div className={`grid ${columns} gap-4 w-full`}>{children}</div>
     </div>
   );
@@ -250,10 +276,18 @@ export default function DSPPage() {
     Exchange_Rate: "",
     Peso_Value: "",
     Remarks: "",
+    Remarks2: "",
     billing_date: "",
     DSP: "",
+    "SI#": "",
+    "BI#": "",
+    Division: "",
+    Amount_Received: "",
+    Bank_Charge: "",
+    Total_Amount: "",
+    Year_Period: "",
+    Quarter_Period: "",
   });
-
 
   const isDisabled = (allowedRoles: number[]) => {
     if (!mounted) return true;
@@ -276,7 +310,7 @@ export default function DSPPage() {
     try {
       const res = await fetch(`${API_BASE}/dsp`);
       const data = await res.json();
-      setRecords(Array.isArray(data) ? data : data.data ?? []);
+      setRecords(Array.isArray(data) ? data : (data.data ?? []));
     } catch (err) {
       console.error("Fetch failed", err);
     } finally {
@@ -294,8 +328,11 @@ export default function DSPPage() {
   }, [records]);
 
   const filteredRecords = useMemo(() => {
-    let result = selectedDSP === "ALL" ? [...records] : records.filter((r) => r.DSP === selectedDSP);
-    
+    let result =
+      selectedDSP === "ALL"
+        ? [...records]
+        : records.filter((r) => r.DSP === selectedDSP);
+
     result.sort((a, b) => {
       const dateA = a.billing_date ? new Date(a.billing_date).getTime() : 0;
       const dateB = b.billing_date ? new Date(b.billing_date).getTime() : 0;
@@ -312,7 +349,7 @@ export default function DSPPage() {
   }, [filteredRecords, currentPage]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     if (name === "DSP") {
@@ -346,9 +383,18 @@ export default function DSPPage() {
       Exchange_Rate: record.Exchange_Rate?.toString() || "",
       Peso_Value: record.Peso_Value?.toString() || "",
       Remarks: record.Remarks || "",
+      Remarks2: record.Remarks2 || "",
       billing_date: record.billing_date
         ? record.billing_date.split("T")[0]
         : "",
+      "SI#": record["SI#"] || "",
+      "BI#": record["BI#"] || "",
+      Division: record.Division || "",
+      Amount_Received: record.Amount_Received?.toString() || "",
+      Bank_Charge: record.Bank_Charge?.toString() || "",
+      Total_Amount: record.Total_Amount?.toString() || "",
+      Year_Period: record.Year_Period || "",
+      Quarter_Period: record.Quarter_Period || "",
     });
     if (record.DSP) setCoverageMode(dspCoverageMode[record.DSP] || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -363,25 +409,20 @@ export default function DSPPage() {
     if (!editingId) {
       dataToSubmit.Collection_ID = generateCollectionId(formData.DSP, records);
     }
-
     const url = editingId ? `${API_BASE}/dsp/${editingId}` : `${API_BASE}/dsp`;
     const method = editingId ? "PUT" : "POST";
-
     try {
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dataToSubmit),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData?.error || "Failed to save DSP record");
       }
-
       const result = await response.json();
       setGeneratedId(result.Collection_ID);
-
       setEditingId(null);
       setFormData({
         Coverage_Period: "",
@@ -397,10 +438,18 @@ export default function DSPPage() {
         Exchange_Rate: "",
         Peso_Value: "",
         Remarks: "",
+        Remarks2: "",
         billing_date: "",
         DSP: "",
+        "SI#": "",
+        "BI#": "",
+        Division: "",
+        Amount_Received: "",
+        Bank_Charge: "",
+        Total_Amount: "",
+        Year_Period: "",
+        Quarter_Period: "",
       });
-
       fetchDSP();
     } catch (err: any) {
       console.error("Save failed", err);
@@ -409,7 +458,6 @@ export default function DSPPage() {
       setLoading(false);
     }
   };
-
   const exportToExcel = () => {
     const headers = [
       "Collection ID",
@@ -427,29 +475,45 @@ export default function DSPPage() {
       "Exchange Rate",
       "Peso Value",
       "Remarks",
+      "Remarks 2",
       "Billing Date",
+      "SI#",
+      "BI#",
+      "Division",
+      "Amount Received",
+      "Total Amount",
+      "Year Period",
+      "Quarter Period",
     ];
     const rows = filteredRecords.map((r) => [
-      r.Collection_ID,
+      r.Collection_ID ?? "",
       r.DSP ?? "",
       r.Coverage_Period ?? "",
-      r.Licensor,
-      r.Claim_Type,
-      r.Status,
-      r.Email_Subject,
-      r.Confirm_Date,
-      r.Deadline_of_Billing,
-      r.Date_Received,
-      r.Currency,
+      r.Licensor ?? "",
+      r.Claim_Type ?? "",
+      r.Status ?? "",
+      r.Email_Subject ?? "",
+      r.Confirm_Date ?? "",
+      r.Deadline_of_Billing ?? "",
+      r.Date_Received ?? "",
+      r.Currency ?? "",
       r.Gross ?? "",
       r.Exchange_Rate ?? "",
       r.Peso_Value ?? "",
       r.Remarks ?? "",
+      r.Remarks2 ?? "",
       r.billing_date ?? "",
+      r["SI#"] ?? "",
+      r["BI#"] ?? "",
+      r.Division ?? "",
+      r.Amount_Received ?? "",
+      r.Total_Amount ?? "",
+      r.Year_Period ?? "",
+      r.Quarter_Period ?? "",
     ]);
     const csv = [headers, ...rows]
       .map((row) =>
-        row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")
+        row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","),
       )
       .join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -458,23 +522,29 @@ export default function DSPPage() {
     link.download = "dsp_records.csv";
     link.click();
   };
-
   return (
-    <>
+    <div className="min-h-screen w-full bg-[url('/BG.png')] bg-fixed bg-no-repeat bg-cover bg-top">
       <Navbar />
       <div className="p-4 space-y-8">
         <form
           onSubmit={handleSubmit}
-          className="grid grid-cols-1 lg:grid-cols-4 gap-4 bg-white p-4 items-stretch"
+          className="grid grid-cols-1 lg:grid-cols-4 gap-4 bg-white p-4 items-stretch shadow-lg rounded-sm"
         >
           <div className="lg:col-span-2">
             <Section
               title="DDD/Legal Form"
-              columns="grid-cols-1 md:grid-cols-3"
+              columns="grid-cols-1 md:grid-cols-5"
               disabled={isDisabled([ROLE.LEGAL])}
             >
               <Select
-                label="DSP"
+                label="Division"
+                name="Division"
+                value={formData.Division}
+                options={["Digital", "Non-Digital"]}
+                onChange={handleChange}
+              />
+              <Select
+                label="Omni Play"
                 name="DSP"
                 value={formData.DSP}
                 options={DSP}
@@ -487,6 +557,23 @@ export default function DSPPage() {
                 options={
                   coverageMode === "monthly" ? monthlyOptions : quarterlyOptions
                 }
+                onChange={handleChange}
+              />
+              <Select
+                label="Year"
+                name="Year_Period"
+                value={formData.Year_Period}
+                options={Array.from(
+                  { length: END_YEAR - START_YEAR + 1 },
+                  (_, i) => (END_YEAR - i).toString(),
+                )}
+                onChange={handleChange}
+              />
+              <Select
+                label="Quarter"
+                name="Quarter_Period"
+                value={formData.Quarter_Period}
+                options={Array.from({ length: 4 }, (_, i) => `Q${i + 1}`)}
                 onChange={handleChange}
               />
               <Select
@@ -528,18 +615,27 @@ export default function DSPPage() {
                 value={formData.Gross || ""}
                 onChange={handleChange}
               />
-              <Input
-                label="Remarks"
-                name="Remarks"
-                value={formData.Remarks}
+              <Select
+                label="Currency"
+                name="Currency"
+                value={formData.Currency}
+                options={currencies}
                 onChange={handleChange}
               />
+              <div className="w-[325%]">
+                <Input
+                  label="Remarks"
+                  name="Remarks"
+                  value={formData.Remarks}
+                  onChange={handleChange}
+                />
+              </div>
             </Section>
           </div>
           <div className="lg:col-span-1">
             <Section
               title="Accounting Form"
-              columns="grid-cols-1"
+              columns="grid-cols-3"
               disabled={isDisabled([ROLE.ACCOUNTING])}
             >
               <DateInput
@@ -548,11 +644,39 @@ export default function DSPPage() {
                 value={formData.Date_Received}
                 onChange={handleChange}
               />
-              <Select
-                label="Currency"
-                name="Currency"
-                value={formData.Currency}
-                options={currencies}
+              <Input
+                label="SI#"
+                name="SI#"
+                type="number"
+                value={formData["SI#"] || ""}
+                onChange={handleChange}
+              />
+              <Input
+                label="BI#"
+                name="BI#"
+                type="number"
+                value={formData["BI#"] || ""}
+                onChange={handleChange}
+              />
+              <Input
+                label="Amount"
+                name="Amount_Received"
+                type="number"
+                value={formData.Amount_Received || ""}
+                onChange={handleChange}
+              />
+              <Input
+                label="Bank Charge"
+                name="Bank_Charge"
+                type="number"
+                value={formData.Bank_Charge || ""}
+                onChange={handleChange}
+              />
+              <Input
+                label="Total Amount"
+                name="Total_Amount"
+                type="number"
+                value={formData.Total_Amount || ""}
                 onChange={handleChange}
               />
               <Input
@@ -562,13 +686,15 @@ export default function DSPPage() {
                 value={formData.Exchange_Rate || ""}
                 onChange={handleChange}
               />
-              <Input
-                label="Peso Value"
-                name="Peso_Value"
-                type="number"
-                value={formData.Peso_Value || ""}
-                onChange={handleChange}
-              />
+              <div className="w-[220%]">
+                <Input
+                  label="Peso Value"
+                  name="Peso_Value"
+                  type="number"
+                  value={formData.Peso_Value || ""}
+                  onChange={handleChange}
+                />
+              </div>
             </Section>
           </div>
           <div className="lg:col-span-1">
@@ -590,7 +716,12 @@ export default function DSPPage() {
                 options={statuses}
                 onChange={handleChange}
               />
-
+              <Input
+                label="Remarks"
+                name="Remarks2"
+                value={formData.Remarks2}
+                onChange={handleChange}
+              />
             </Section>
           </div>
           <div className="col-span-full flex gap-4 mt-6">
@@ -601,14 +732,16 @@ export default function DSPPage() {
                 isDisabled([ROLE.LEGAL, ROLE.ACCOUNTING, ROLE.LICENSING])
               }
               className={`${
-                editingId ? "bg-orange-600" : "bg-blue-600"
+                editingId
+                  ? "bg-orange-600"
+                  : "bg-yellow-500 hover:bg-yellow-600"
               } text-white text-xs font-bold py-2 px-6 rounded disabled:bg-gray-400`}
             >
               {loading
                 ? "Saving…"
                 : editingId
-                ? "Update DSP Record"
-                : "Save DSP Record"}
+                  ? "Update DSP Record"
+                  : "Save DSP Record"}
             </button>
             {editingId && (
               <button
@@ -629,8 +762,17 @@ export default function DSPPage() {
                     Exchange_Rate: "",
                     Peso_Value: "",
                     Remarks: "",
+                    Remarks2: "",
                     billing_date: "",
                     DSP: "",
+                    "SI#": "",
+                    "BI#": "",
+                    Division: "",
+                    Amount_Received: "",
+                    Bank_Charge: "",
+                    Total_Amount: "",
+                    Year_Period: "",
+                    Quarter_Period: "",
                   });
                 }}
                 className="bg-gray-500 text-white text-xs font-bold py-2 px-6 rounded"
@@ -640,9 +782,7 @@ export default function DSPPage() {
             )}
           </div>
         </form>
-
-        <h2 className="text-xl font-bold">Submitted DSP Records</h2>
-        
+        <h2 className="text-xl font-bold">DSP and Foreign records logged</h2>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="flex items-end">
             <div className="flex flex-col">
@@ -662,7 +802,6 @@ export default function DSPPage() {
                 ))}
               </select>
             </div>
-            
             <div className="flex flex-col">
               <label className="text-[10px] font-bold block mb-1 uppercase text-gray-500">
                 Sort Billing Date
@@ -676,16 +815,14 @@ export default function DSPPage() {
                 <option value="asc">Oldest to Latest</option>
               </select>
             </div>
-
             <button
               onClick={exportToExcel}
-              className="ml-4 bg-green-700 hover:bg-green-800 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm transition-all h-[34px]"
+              className="ml-4 bg-yellow-500 hover:bg-yellow-600 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm transition-all h-[34px]"
             >
               EXPORT EXCEL
             </button>
           </div>
         </div>
-
         {tableLoading ? (
           <p className="text-sm italic">Loading records…</p>
         ) : (
@@ -693,22 +830,78 @@ export default function DSPPage() {
             <table className="w-full table-fixed border-collapse text-[10px] font-sans">
               <thead className="bg-[#f2f2f2] border-b border-gray-300">
                 <tr className="divide-x divide-gray-300">
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">ID</th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">DSP</th>
-                  <th className="w-[8%] px-1 py-1.5 text-center font-bold text-gray-700">Period</th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">Licensor</th>
-                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">Claim</th>
-                  <th className="w-[10%] px-1 py-1.5 text-center font-bold text-gray-700">Subject</th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">Confirm</th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">Deadline</th>
-                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">Received</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">Curr</th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">Gross</th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">Rate</th>
-                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">Peso</th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">Remarks</th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">Billing</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">Status</th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    ID
+                  </th>
+                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Division
+                  </th>
+                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    DSP
+                  </th>
+                  <th className="w-[8%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Period
+                  </th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Licensor
+                  </th>
+                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Claim
+                  </th>
+                  <th className="w-[10%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Subject
+                  </th>
+                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Confirm
+                  </th>
+                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Deadline
+                  </th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Gross
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Curr
+                  </th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Rate
+                  </th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Remarks
+                  </th>
+                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Received
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    SI#
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    BI#
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Amount
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Charge
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Total
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Rate
+                  </th>
+                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Peso
+                  </th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Billing
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Status
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Remarks
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white">
@@ -727,10 +920,15 @@ export default function DSPPage() {
                         {r.Collection_ID}
                       </button>
                     </td>
-                    <td className="px-1 py-1 truncate">{r.DSP}</td>
-                    <td className="px-1 py-1 truncate">{r.Coverage_Period}</td>
-                    <td className="px-1 py-1">{r.Licensor}</td>
-                    <td className="px-1 py-1">{r.Claim_Type}</td>
+                    <td className="px-1 py-1 text-center truncate">
+                      {r.Division}
+                    </td>
+                    <td className="px-1 py-1 text-center truncate">{r.DSP}</td>
+                    <td className="px-1 py-1 text-center truncate">
+                      {r.Coverage_Period}
+                    </td>
+                    <td className="px-1 py-1 text-center">{r.Licensor}</td>
+                    <td className="px-1 py-1 text-center">{r.Claim_Type}</td>
                     <td className="px-1 py-1 truncate">{r.Email_Subject}</td>
                     <td className="px-1 py-1 text-center">
                       {formatDateDisplay(r.Confirm_Date)}
@@ -738,42 +936,67 @@ export default function DSPPage() {
                     <td className="px-1 py-1 text-center">
                       {formatDateDisplay(r.Deadline_of_Billing)}
                     </td>
-                    <td className="px-1 py-1 text-center">
-                      {formatDateDisplay(r.Date_Received)}
-                    </td>
-                    <td className="px-1 py-1 text-center">{r.Currency}</td>
                     <td className="px-1 py-1 text-center">{r.Gross}</td>
+                    <td className="px-1 py-1 text-center">{r.Currency}</td>
                     <td className="px-1 py-1 text-center">{r.Exchange_Rate}</td>
-                    <td className="px-1 py-1 text-center">{r.Peso_Value}</td>
+
+                    {/* Remarks 1 (from DDD/Legal) */}
                     <td
                       className="px-1 py-1 truncate text-center"
                       title={r.Remarks || ""}
                     >
                       {r.Remarks}
                     </td>
+
+                    <td className="px-1 py-1 text-center">
+                      {formatDateDisplay(r.Date_Received)}
+                    </td>
+                    <td className="px-1 py-1 text-center">{r["SI#"]}</td>
+                    <td className="px-1 py-1 text-center">{r["BI#"]}</td>
+                    <td className="px-1 py-1 text-center">
+                      {r.Amount_Received}
+                    </td>
+                    <td className="px-1 py-1 text-center">{r.Bank_Charge}</td>
+                    <td className="px-1 py-1 text-center">{r.Total_Amount}</td>
+
+                    {/* Rate again as requested in your header order */}
+                    <td className="px-1 py-1 text-center">{r.Exchange_Rate}</td>
+
+                    <td className="px-1 py-1 text-center">{r.Peso_Value}</td>
                     <td className="px-1 py-1 text-center">
                       {formatDateDisplay(r.billing_date)}
                     </td>
                     <td className="px-1 py-1 text-center">{r.Status}</td>
+
+                    {/* Remarks 2 (from Licensing) */}
+                    <td
+                      className="px-1 py-1 truncate text-center"
+                      title={r.Remarks2 || ""}
+                    >
+                      {r.Remarks2}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-
-            <div className="bg-white p-1 relative flex justify-center items-center">
+            <div className="bg-white p-1 relative flex justify-center items-center border-t border-gray-300">
               <div className="absolute left-4 text-[11px] text-gray-700 hidden lg:block">
                 Showing{" "}
                 <span className="font-semibold">
-                  {filteredRecords.length === 0 ? 0 : (currentPage - 1) * ROWS_PER_PAGE + 1}
+                  {filteredRecords.length === 0
+                    ? 0
+                    : (currentPage - 1) * ROWS_PER_PAGE + 1}
                 </span>{" "}
                 to{" "}
                 <span className="font-semibold">
-                  {Math.min(currentPage * ROWS_PER_PAGE, filteredRecords.length)}
+                  {Math.min(
+                    currentPage * ROWS_PER_PAGE,
+                    filteredRecords.length,
+                  )}
                 </span>{" "}
-                of <span className="font-semibold">{filteredRecords.length}</span>
+                of{" "}
+                <span className="font-semibold">{filteredRecords.length}</span>
               </div>
-
-              {/* Centered Controls */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -788,9 +1011,13 @@ export default function DSPPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
                   disabled={
-                    currentPage === totalPages || totalPages === 0 || tableLoading
+                    currentPage === totalPages ||
+                    totalPages === 0 ||
+                    tableLoading
                   }
                   className="px-3 py-1 text-[10px] font-bold border border-gray-300 rounded bg-white disabled:opacity-50 hover:bg-gray-100 transition-colors shadow-sm"
                 >
@@ -801,6 +1028,6 @@ export default function DSPPage() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

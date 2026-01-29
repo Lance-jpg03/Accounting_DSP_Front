@@ -70,6 +70,52 @@ body {
   @apply bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded
 }
 
+.footer {
+  @apply absolute inset-0 pointer-events-none z-30 opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]
+}
+
+
+@layer components {
+  .scanline-overlay {
+    @apply absolute inset-0 pointer-events-none z-30 opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%];
+  }
+
+  .login-page-wrapper {
+    @apply relative min-h-screen w-full bg-black overflow-hidden flex;
+  }
+
+  .content-sidebar {
+    @apply absolute right-0 top-0 h-full z-10 flex flex-col transition-all duration-1000 transform;
+  }
+
+  .title-container {
+    @apply text-right -mt-24 mb-10;
+  }
+
+  .h1-main {
+    @apply text-gray-500 text-6xl font-bold tracking-tighter uppercase;
+  }
+
+  .p-credentials {
+    @apply text-gray-400/70 text-[12px] font-bold tracking-[0.1em] uppercase mt-1;
+  }
+
+  .login-form {
+    @apply w-full max-w-[340px] flex flex-col space-y-5 px-6;
+  }
+
+  .form {
+    @apply w-full bg-gray-100/30 backdrop-blur-sm border border-gray-300 rounded-xl py-3 px-4 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#f0bb0e] transition-all font-mono tracking-widest text-sm;
+  }
+
+  .submit {
+    @apply w-full py-3 bg-[#3b5998] hover:bg-blue-700 text-white font-bold tracking-widest uppercase rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50;
+  }
+
+  .footer-copyright {
+    @apply text-gray-400 text-[10px] tracking-[0.2em] uppercase py-8 text-center w-full;
+  }
+}
 
 
 
