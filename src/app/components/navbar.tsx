@@ -22,7 +22,7 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="bg-transparent p-4 sticky top-0 z-50 w-full">
+    <header className="bg-transparent p-2 sticky top-0 z-50 w-full">
       <div className="flex items-center justify-between bg-transparent px-4 py-2">
         <div className="flex items-center space-x-3">
 
