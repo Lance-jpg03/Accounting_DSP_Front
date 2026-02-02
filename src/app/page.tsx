@@ -19,11 +19,14 @@ export default function ProjectFlashLogin() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsInitialized(true);
-    }, 3500);
+      setShowPrivacy(true); 
+    }, 3500); 
     return () => clearTimeout(timer);
   }, []);
 
@@ -51,75 +54,139 @@ export default function ProjectFlashLogin() {
     }
   }
 
- return (
-  <div className="login-page-wrapper">
-    {/* Background GIFs */}
-    <div
-      className={`absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-700 ${
-        isInitialized ? "opacity-0" : "opacity-100"
-      }`}
-      style={{ backgroundImage: "url('/Project Flash Login Screen.gif')" }}
-    />
-    <div
-      className={`absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-1000 ${
-        isInitialized ? "opacity-100" : "opacity-0"
-      }`}
-      style={{ backgroundImage: "url('/LOGIN FORM (4).gif')" }}
-    />
+  return (
+    <div className="login-page-wrapper">
+      <div
+        className={`absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-700 ${
+          isInitialized ? "opacity-0" : "opacity-100"
+        }`}
+        style={{ backgroundImage: "url('/Project Flash Login Screen.gif')" }}
+      />
+      <div
+        className={`absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-1000 ${
+          isInitialized ? "opacity-100" : "opacity-0"
+        }`}
+        style={{ backgroundImage: "url('/LOGIN FORM (4).gif')" }}
+      />
+      <div
+        className={`content-sidebar w-full md:w-[55%] ${
+          isInitialized ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 pointer-events-none"
+        }`}
+      >
+        <div className="flex-grow flex items-center justify-center">
+          <form onSubmit={handleLogin} className="login-form">
+            <div className="title-container">
+              <h1 className={`${poppins.className} h1-main`}>
+                Project <span className="text-[#f0bb0e]">Flash</span>
+              </h1>
+              <p className={`${poppins.className} p-credentials`}>
+                Please enter your credentials
+              </p>
+            </div>
 
-    {/* Right Side Content */}
-    <div
-      className={`content-sidebar w-full md:w-[55%] ${
-        isInitialized ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 pointer-events-none"
-      }`}
-    >
-      <div className="flex-grow flex items-center justify-center">
-        <form onSubmit={handleLogin} className="login-form">
-          
-          <div className="title-container">
-            <h1 className={`${poppins.className} h1-main`}>
-              Project <span className="text-[#f0bb0e]">Flash</span>
-            </h1>
-            <p className={`${poppins.className} p-credentials`}>
-              Please enter your credentials
-            </p>
-          </div>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="USERNAME"
+              className="form"
+              disabled={loading}
+            />
 
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="USERNAME"
-            className="form"
-            disabled={loading}
-          />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="PASSWORD"
+              className="form"
+              disabled={loading}
+            />
 
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="PASSWORD"
-            className="form"
-            disabled={loading}
-          />
+            {error && <p className="text-red-500 text-[10px] text-center uppercase">{error}</p>}
 
-          {error && <p className="text-red-500 text-[10px] text-center uppercase">{error}</p>}
+            <button type="submit" className="submit" disabled={loading || !username || !password}>
+              {loading ? "..." : "SIGN IN"}
+            </button>
+          </form>
+        </div>
 
-          <button type="submit" className="submit" disabled={loading || !username || !password}>
-            {loading ? "..." : "SIGN IN"}
-          </button>
-        </form>
+        <footer className="footer-copyright">
+          <p className={poppins.className}>
+            © 2024 Omni Play | <span className="text-gray-300">Digital Service Provider</span>
+          </p>
+        </footer>
       </div>
 
-      <footer className="footer-copyright">
-        <p className={poppins.className}>
-          © 2024 Omni Play | <span className="text-gray-300">Digital Service Provider</span>
-        </p>
-      </footer>
-    </div>
+      {showPrivacy && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-lg bg-[#f8f9fa] rounded-2xl shadow-2xl overflow-hidden border border-white/20">
+            
+            <div className="bg-[#004aad] p-4 flex justify-between items-center">
+              <h2 className={`${poppins.className} text-white font-bold uppercase tracking-widest text-sm`}>
+                Privacy Notice
+              </h2>
+              <button 
+                onClick={() => setShowPrivacy(false)}
+                className="text-white hover:text-red-400 transition-colors font-bold text-xl px-2"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 max-h-[70vh] overflow-y-auto text-[11px] leading-relaxed text-gray-700">
+              <p className="mb-4 font-bold">Project Flash : DSP and Foreign Tracker</p>
+              <p className="mb-4">
+                respects your privacy and is committed to protecting your personal information. 
+                This notice explains how information is collected and used in connection with the Program.
+              </p>
 
-    {/* The Scanline Effect from your CSS */}
-    <div className="scanline-overlay" />
-  </div>
-);
+              <h3 className="font-bold text-[#004aad] mb-1">Information Collected</h3>
+              <ul className="list-disc ml-4 mb-4">
+                <li>Assigned Username and Password of the developer</li>
+                <li>Numbers input by the user</li>
+              </ul>
+
+              <h3 className="font-bold text-[#004aad] mb-1">Purpose of Collection</h3>
+              <p className="mb-4">
+                The collected information is used solely to authenticate and manage access to the Program. 
+                Ensure proper functionality and security of the system.
+              </p>
+
+              <h3 className="font-bold text-[#004aad] mb-1">Data Security</h3>
+              <p className="mb-4">
+                All collected information is handled securely. Access is restricted to authorized personnel only. 
+                The Program implements reasonable technical and organizational measures to protect your information.
+              </p>
+
+              <h3 className="font-bold text-[#004aad] mb-1">Data Sharing</h3>
+              <p className="mb-4">The Program does not share any collected information with third parties.</p>
+
+              <h3 className="font-bold text-[#004aad] mb-1">Retention</h3>
+              <p className="mb-4">
+                Collected information is retained only for as long as necessary to fulfill the purposes outlined above.
+              </p>
+
+              <h3 className="font-bold text-[#004aad] mb-1">Your Rights</h3>
+              <p className="mb-4">
+                You have the right to request access to, correction, or deletion of your information. 
+                For any inquiries regarding your data, please email projectsandanalytics@filscap.com.ph.
+              </p>
+              
+              <h3 className="font-bold text-[#004aad] mb-1">Updates to this Notice</h3>
+              <p>This Privacy Notice may be updated from time to time. The latest version will always be accessible within the Program.</p>
+            </div>
+            
+            <div className="bg-gray-100 p-3 text-center border-t">
+              <button 
+                onClick={() => setShowPrivacy(false)}
+                className="bg-[#004aad] text-white text-[10px] px-8 py-2 rounded-full hover:bg-blue-700 transition-all font-bold uppercase"
+              >
+                I Understand
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="scanline-overlay" />
+    </div>
+  );
 }
