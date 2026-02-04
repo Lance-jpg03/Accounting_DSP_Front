@@ -18,8 +18,7 @@ export default function ProjectFlashLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  
+  const [isInitialized, setIsInitialized] = useState(false);  
   const [showPrivacy, setShowPrivacy] = useState(false);
 
   useEffect(() => {
@@ -114,6 +113,12 @@ export default function ProjectFlashLogin() {
           <p className={poppins.className}>
             © 2024 Omni Play | <span className="text-gray-300">Digital Service Provider</span>
           </p>
+            <button
+              onClick={() => setShowPrivacy(true)}
+              className="text-[9px] uppercase tracking-widest text-gray-500 hover:text-[#f0bb0e] transition-colors"
+            >
+              View Privacy Notice
+            </button>
         </footer>
       </div>
 
@@ -125,12 +130,6 @@ export default function ProjectFlashLogin() {
               <h2 className={`${poppins.className} text-white font-bold uppercase tracking-widest text-sm`}>
                 Privacy Notice
               </h2>
-              <button 
-                onClick={() => setShowPrivacy(false)}
-                className="text-white hover:text-red-400 transition-colors font-bold text-xl px-2"
-              >
-                ✕
-              </button>
             </div>
             <div className="p-6 max-h-[70vh] overflow-y-auto text-[11px] leading-relaxed text-gray-700">
               <p className="mb-4 font-bold">Project Flash : DSP and Foreign Tracker</p>
