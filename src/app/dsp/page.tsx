@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { getCookie } from "cookies-next";
+import Image from "next/image";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
 
 const ROLE = {
@@ -372,41 +373,42 @@ export default function DSPPage() {
     return filteredRecords.slice(startIndex, startIndex + ROWS_PER_PAGE);
   }, [filteredRecords, currentPage]);
 
-  const specialClaims =["Back-Claim", "GEC", "Pre-Claim"]
+  const specialClaims = ["Back-Claim", "GEC", "Pre-Claim"];
 
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target;
-    
+
     // Auto-update Amount Received when Gross is typed
     if (name === "Gross") {
-        const val = value;
-        const amt = parseFloat(val) || 0;
-        const charge = (amt * 0.10).toFixed(2);
-        const total = (amt - parseFloat(charge)).toFixed(2);
-        setFormData((p: DspData) => ({ 
-            ...p, 
-            Gross: val,
-            Amount_Received: val, 
-            Bank_Charge: charge, 
-            Total_Amount: total 
-        }));
-        return;
+      const val = value;
+      const amt = parseFloat(val) || 0;
+      const charge = (amt * 0.1).toFixed(2);
+      const total = (amt - parseFloat(charge)).toFixed(2);
+      setFormData((p: DspData) => ({
+        ...p,
+        Gross: val,
+        Amount_Received: val,
+        Bank_Charge: charge,
+        Total_Amount: total,
+      }));
+      return;
     }
 
     if (name === "Amount_Received") {
-        const amt = parseFloat(value) || 0;
-        const charge = (amt * 0.10).toFixed(2);
-        const total = (amt - parseFloat(charge)).toFixed(2);
-        setFormData((p: DspData) => ({ 
-            ...p, 
-            Amount_Received: value, 
-            Bank_Charge: charge, 
-            Total_Amount: total 
-        }));
-        return;
+      const amt = parseFloat(value) || 0;
+      const charge = (amt * 0.1).toFixed(2);
+      const total = (amt - parseFloat(charge)).toFixed(2);
+      setFormData((p: DspData) => ({
+        ...p,
+        Amount_Received: value,
+        Bank_Charge: charge,
+        Total_Amount: total,
+      }));
+      return;
     }
-    
+
     if (name === "DSP") {
       setCoverageMode(dspCoverageMode[value] || "");
       setFormData((p: DspData) => ({ ...p, DSP: value, Coverage_Period: "" }));
@@ -606,14 +608,22 @@ export default function DSPPage() {
   };
   return (
     <div className="min-h-screen w-full bg-[url('/BG.png')] lg:bg-[url('/BG-laptop.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center">
-      <div className="relative z-10 w-full px-6 py-2 flex justify-end items-center">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold px-6 py-2 rounded transition-all shadow-md uppercase text-xs"
-        >
-          Logout
-        </button>
+      <div className="relative w-full bg-[#004aad] p-3 sticky top-0 z-50">
+        <div className="w-full px-1 relative z-10 flex justify-between items-center">
+          <div className="flex items-center">
+            <Image src="/omni.png" alt="LOGO" width={200} height={50} />
+            <div className="text-white text-xl">
+            Foreign Revenue Tracker
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold px-6 py-2 rounded transition-all shadow-md uppercase text-xs"
+          >
+            Logout
+          </button>
+        </div>
       </div>
       <div className="p-4 space-y-8">
         <form
@@ -680,12 +690,12 @@ export default function DSPPage() {
                 options={claimTypes}
                 onChange={handleChange}
               />
-                <Input
-                  label="Email Subject"
-                  name="Email_Subject"
-                  value={formData.Email_Subject}
-                  onChange={handleChange}
-                />
+              <Input
+                label="Email Subject"
+                name="Email_Subject"
+                value={formData.Email_Subject}
+                onChange={handleChange}
+              />
               <DateInput
                 label="Confirm Date"
                 name="Confirm_Date"
@@ -920,31 +930,81 @@ export default function DSPPage() {
             <table className="w-full table-fixed border-collapse text-[10px] font-sans">
               <thead className="bg-[#f2f2f2] border-b border-gray-300">
                 <tr className="divide-x divide-gray-300">
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">ID</th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">Division</th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">DSP</th>
-                  <th className="w-[8%] px-1 py-1.5 text-center font-bold text-gray-700">Period</th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">Licensor</th>
-                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">Claim</th>
-                  <th className="w-[10%] px-1 py-1.5 text-center font-bold text-gray-700">Subject</th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">Confirm</th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">Deadline</th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">Gross</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">Curr</th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">Rate</th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">Remarks</th>
-                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">Received</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">SI#</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">BI#</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">Amount</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">Charge</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">Total</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">Rate</th>
-                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">Peso</th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">Billing</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">Status</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">Remarks</th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">Variance</th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    ID
+                  </th>
+                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Division
+                  </th>
+                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    DSP
+                  </th>
+                  <th className="w-[8%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Period
+                  </th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Licensor
+                  </th>
+                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Claim
+                  </th>
+                  <th className="w-[10%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Subject
+                  </th>
+                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Confirm
+                  </th>
+                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Deadline
+                  </th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Gross
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Curr
+                  </th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Rate
+                  </th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Remarks
+                  </th>
+                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Received
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    SI#
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    BI#
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Amount
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Charge
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Total
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Rate
+                  </th>
+                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Peso
+                  </th>
+                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Billing
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Status
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Remarks
+                  </th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                    Variance
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white">
