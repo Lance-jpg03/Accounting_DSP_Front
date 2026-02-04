@@ -374,10 +374,39 @@ export default function DSPPage() {
 
   const specialClaims =["Back-Claim", "GEC", "Pre-Claim"]
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // Auto-update Amount Received when Gross is typed
+    if (name === "Gross") {
+        const val = value;
+        const amt = parseFloat(val) || 0;
+        const charge = (amt * 0.10).toFixed(2);
+        const total = (amt - parseFloat(charge)).toFixed(2);
+        setFormData((p: DspData) => ({ 
+            ...p, 
+            Gross: val,
+            Amount_Received: val, 
+            Bank_Charge: charge, 
+            Total_Amount: total 
+        }));
+        return;
+    }
+
+    if (name === "Amount_Received") {
+        const amt = parseFloat(value) || 0;
+        const charge = (amt * 0.10).toFixed(2);
+        const total = (amt - parseFloat(charge)).toFixed(2);
+        setFormData((p: DspData) => ({ 
+            ...p, 
+            Amount_Received: value, 
+            Bank_Charge: charge, 
+            Total_Amount: total 
+        }));
+        return;
+    }
+    
     if (name === "DSP") {
       setCoverageMode(dspCoverageMode[value] || "");
       setFormData((p: DspData) => ({ ...p, DSP: value, Coverage_Period: "" }));
