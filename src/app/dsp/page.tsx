@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getCookie } from "cookies-next";
 import Image from "next/image";
@@ -13,13 +13,21 @@ const ROLE = {
 };
 const generateCollectionId = (
   dspName: string,
+  coverageStartDate: string,
   existingRecords: DSPRecord[],
 ) => {
+  if (!dspName || !coverageStartDate) return "";
+
   const prefix = dspName.trim().substring(0, 3).toUpperCase().padEnd(3, "X");
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
+
+  // Extract year and month from the Coverage Start Date
+  const dateObj = new Date(coverageStartDate);
+  if (isNaN(dateObj.getTime())) return "";
+
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
   const datePart = `${year}${month}`;
+
   const matches = existingRecords.filter(
     (r) => r.DSP === dspName && r.Collection_ID?.includes(datePart),
   );
@@ -27,23 +35,45 @@ const generateCollectionId = (
   const counter = String(nextNumber).padStart(5, "0");
   return `${prefix}-${datePart}-${counter}`;
 };
+
+const formatDisplayNumber = (val: any, decimals: number = 2) => {
+  const num = parseFloat(String(val).replace(/,/g, ""));
+  if (isNaN(num)) return (0).toFixed(decimals);
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(num);
+};
+
+const formatInputNumber = (val: string) => {
+  if (!val) return "";
+  const cleanVal = val.replace(/[^0-9.]/g, "");
+  const parts = cleanVal.split(".");
+
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  return parts.length > 1 ? `${parts[0]}.${parts[1].slice(0, 4)}` : parts[0];
+};
+
 interface DspData {
+  Coverage_Start_Date: string;
+  Coverage_End_Date: string;
   Coverage_Period: string;
   Licensor: string;
   Claim_Type: string;
   Email_Subject: string;
   Status: string;
-  Confirm_Date: string;
+  Notification_date: string;
   Deadline_of_Billing: string;
   Date_Received: string;
   Gross: string;
   Currency: string;
   Exchange_Rate: string;
   Peso_Value: string;
-  Remarks: string;
-  Remarks2: string;
+  DDM_Remarks: string;
+  Licensing_Remarks: string;
   DSP: string;
-  billing_date: string;
+  Date_billed: string;
   Collection_ID?: string;
   "SI#": string;
   "BI#": string;
@@ -51,10 +81,10 @@ interface DspData {
   Amount_Received: string;
   Bank_Charge: string;
   Total_Amount: string;
-  Year_Period: string;
-  Quarter_Period: string;
   Variance: string;
+  Data_Coverage?: string;
 }
+
 interface DSPRecord {
   Collection_ID: string;
   Coverage_Period: string | null;
@@ -62,27 +92,27 @@ interface DSPRecord {
   Claim_Type: string;
   Email_Subject: string;
   Status: string;
-  Confirm_Date: string;
+  Notification_date: string;
   Deadline_of_Billing: string;
   Date_Received: string;
   Gross: number | null;
   Currency: string;
   Exchange_Rate: number | null;
   Peso_Value: number | null;
-  Remarks: string;
-  Remarks2: string;
+  DDM_Remarks: string;
+  Licensing_Remarks: string;
   DSP: string | null;
-  billing_date: string | null;
+  Date_billed: string | null;
   "SI#": string;
   "BI#": string;
   Division: string;
   Amount_Received: number | null;
   Bank_Charge: number | null;
   Total_Amount: number | null;
-  Year_Period: string | null;
-  Quarter_Period: string | null;
-  Variance: number | null; // Added to match Database column
+  Variance: number | null;
+  Data_Coverage?: string;
 }
+
 const DSP = [
   "Spotify",
   "YouTube",
@@ -96,11 +126,12 @@ const DSP = [
   "Kumu",
   "Huawei",
   "Netflix",
-  "Facebook",
+  "Meta",
   "WhatsApp",
   "Concerts & Events",
   "Foreign",
-  "RME",
+  "RME (MUSERK)",
+  "RME (MINT)",
 ];
 const claimTypes = [
   "Back-Claim",
@@ -111,8 +142,34 @@ const claimTypes = [
   "MG",
   "Flat Fee",
   "Shorts",
+  "MG Balance",
+  "Foreign",
+  "Flat Fee GEC",
 ];
-const licensors = ["FILSCAP", "CASH", "APRA"];
+const licensors = [
+  "FILSCAP",
+  "CASH",
+  "APRA",
+  "AAMRO",
+  "MCT",
+  "PRS",
+  "SACM",
+  "JASRAC",
+  "TONO",
+  "KOMCA",
+  "MUST",
+  "IMRO",
+  "COMPASS",
+  "ASCAP",
+  "BMI",
+  "UBC",
+  "MACP",
+  "SOCAN",
+  "BUMA",
+  "GEMA",
+  "SUISA",
+  "SACEM",
+];
 const statuses = ["Pending", "Billed"];
 const currencies = [
   "USD",
@@ -133,39 +190,7 @@ const currencies = [
   "INR",
   "PHP",
 ];
-const START_YEAR = 2020;
-const END_YEAR = new Date().getFullYear();
-const months = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-const monthlyOptions: string[] = [];
-const quarterlyOptions: string[] = [];
-for (let year = END_YEAR; year >= START_YEAR; year--) {
-  for (const month of months) {
-    monthlyOptions.push(`${month} ${year}`);
-  }
-  quarterlyOptions.push(`${year}-Q1`, `${year}-Q2`, `${year}-Q3`, `${year}-Q4`);
-}
-const dspCoverageMode: Record<string, "monthly" | "quarterly"> = {
-  Spotify: "monthly",
-  TikTok: "monthly",
-  "Apple Music": "monthly",
-  YouTube: "quarterly",
-  Netflix: "quarterly",
-  "Apple TV": "quarterly",
-  "Amazon/HBO/Discovery": "monthly",
-};
+
 const formatDateDisplay = (dateStr: string | null | undefined) => {
   if (!dateStr || dateStr === "") return "";
   const date = new Date(dateStr);
@@ -175,6 +200,7 @@ const formatDateDisplay = (dateStr: string | null | undefined) => {
   const yyyy = date.getFullYear();
   return `${mm}-${dd}-${yyyy}`;
 };
+
 function Section({
   title,
   children,
@@ -192,7 +218,6 @@ function Section({
           {title}
         </h2>
       </div>
-
       <div className={`p-4 grid ${columns} gap-4 w-full`}>{children}</div>
     </div>
   );
@@ -231,18 +256,20 @@ function Select({ label, options, disabled, ...props }: any) {
 function DateInput({ disabled, ...props }: any) {
   return <Input {...props} type="date" disabled={disabled} />;
 }
+
 export default function DSPPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
   const [roleFlag, setRoleFlag] = useState<number>(0);
-  const [coverageMode, setCoverageMode] = useState<
-    "monthly" | "quarterly" | ""
-  >("");
   const [loading, setLoading] = useState(false);
   const [records, setRecords] = useState<DSPRecord[]>([]);
   const [tableLoading, setTableLoading] = useState(true);
   const [selectedDSP, setSelectedDSP] = useState("ALL");
-  const [sortOrder, setSortOrder] = useState("desc"); // New State
+  const [showPendingOnly, setShowPendingOnly] = useState(false);
+  const [showBilledOnly, setShowBilledOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [generatedId, setGeneratedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -250,21 +277,23 @@ export default function DSPPage() {
   const ROWS_PER_PAGE = 10;
 
   const [formData, setFormData] = useState<DspData>({
+    Coverage_Start_Date: "",
+    Coverage_End_Date: "",
     Coverage_Period: "",
     Licensor: "",
     Claim_Type: "",
     Email_Subject: "",
-    Status: "",
-    Confirm_Date: "",
+    Status: "Pending",
+    Notification_date: "",
     Deadline_of_Billing: "",
     Date_Received: "",
     Gross: "",
     Currency: "",
-    Exchange_Rate: "",
+    Exchange_Rate: "55",
     Peso_Value: "",
-    Remarks: "",
-    Remarks2: "",
-    billing_date: "",
+    DDM_Remarks: "",
+    Licensing_Remarks: "",
+    Date_billed: "",
     DSP: "",
     "SI#": "",
     "BI#": "",
@@ -272,21 +301,52 @@ export default function DSPPage() {
     Amount_Received: "",
     Bank_Charge: "",
     Total_Amount: "",
-    Year_Period: "",
-    Quarter_Period: "",
-    Variance: "0",
+    Variance: "0.00",
+    Data_Coverage: "",
   });
 
-  // UPDATED MATH FUNCTION: Handles Peso conversion, Manual Bank Charge subtraction, and Variance
   useEffect(() => {
-    const gross = parseFloat(formData.Gross) || 0;
-    const exchangeRate = parseFloat(formData.Exchange_Rate) || 0;
-    const amountReceived = parseFloat(formData.Amount_Received) || 0;
-    const bankCharge = parseFloat(formData.Bank_Charge) || 0;
+    if (formData.Coverage_Start_Date && formData.Coverage_End_Date) {
+      const start = new Date(formData.Coverage_Start_Date);
+      const end = new Date(formData.Coverage_End_Date);
 
-    const calculatedPeso = (gross * exchangeRate).toFixed(2);
-    const calculatedTotalAmount = (amountReceived - bankCharge).toFixed(2);
-    const calculatedVariance = (gross - parseFloat(calculatedTotalAmount)).toFixed(2);
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        const getQ = (date: Date) => Math.floor(date.getMonth() / 3) + 1;
+        const startPart = `${start.getFullYear()}(Q${getQ(start)})`;
+        const endPart = `${end.getFullYear()}(Q${getQ(end)})`;
+
+        const automatedDataCoverage = `${startPart}-${endPart}`;
+        const rangePeriod = `${formData.Coverage_Start_Date} to ${formData.Coverage_End_Date}`;
+
+        setFormData((prev) => ({
+          ...prev,
+          Data_Coverage: automatedDataCoverage,
+          Coverage_Period: rangePeriod,
+        }));
+      }
+    }
+  }, [formData.Coverage_Start_Date, formData.Coverage_End_Date]);
+
+  useEffect(() => {
+    const exchangeRate =
+      parseFloat(String(formData.Exchange_Rate).replace(/,/g, "")) || 0;
+    const amountReceived =
+      parseFloat(String(formData.Amount_Received).replace(/,/g, "")) || 0;
+    const bankCharge =
+      parseFloat(String(formData.Bank_Charge).replace(/,/g, "")) || 0;
+
+    const calculatedTotalAmountVal = amountReceived - bankCharge;
+    const calculatedPesoVal = calculatedTotalAmountVal * exchangeRate;
+
+    const calculatedTotalAmount = formatDisplayNumber(
+      calculatedTotalAmountVal,
+      2,
+    );
+    const calculatedPeso = formatDisplayNumber(calculatedPesoVal, 2);
+
+    const calculatedVarianceVal =
+      calculatedTotalAmountVal - (amountReceived + bankCharge);
+    const calculatedVariance = formatDisplayNumber(calculatedVarianceVal, 2);
 
     setFormData((prev) => {
       let updates: Partial<DspData> = {};
@@ -299,7 +359,7 @@ export default function DSPPage() {
 
       return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
     });
-  }, [formData.Gross, formData.Exchange_Rate, formData.Amount_Received, formData.Bank_Charge]);
+  }, [formData.Exchange_Rate, formData.Amount_Received, formData.Bank_Charge]);
 
   const isDisabled = (allowedRoles: number[]) => {
     if (!mounted) return true;
@@ -315,7 +375,7 @@ export default function DSPPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedDSP, sortOrder]);
+  }, [selectedDSP, sortOrder, showPendingOnly, showBilledOnly, searchQuery]);
 
   const fetchDSP = async () => {
     setTableLoading(true);
@@ -332,7 +392,7 @@ export default function DSPPage() {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:4000/logout", {
+      await fetch(`${API_BASE}/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -360,14 +420,30 @@ export default function DSPPage() {
         ? [...records]
         : records.filter((r) => r.DSP === selectedDSP);
 
+    if (showPendingOnly) result = result.filter((r) => r.Status === "Pending");
+    if (showBilledOnly) result = result.filter((r) => r.Status === "Billed");
+
+    if (searchQuery.trim() !== "") {
+      result = result.filter((r) =>
+        r.Email_Subject?.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
+    }
+
     result.sort((a, b) => {
-      const dateA = a.billing_date ? new Date(a.billing_date).getTime() : 0;
-      const dateB = b.billing_date ? new Date(b.billing_date).getTime() : 0;
+      const dateA = a.Date_billed ? new Date(a.Date_billed).getTime() : 0;
+      const dateB = b.Date_billed ? new Date(b.Date_billed).getTime() : 0;
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
 
     return result;
-  }, [records, selectedDSP, sortOrder]);
+  }, [
+    records,
+    selectedDSP,
+    sortOrder,
+    showPendingOnly,
+    showBilledOnly,
+    searchQuery,
+  ]);
 
   const totalPages = Math.ceil(filteredRecords.length / ROWS_PER_PAGE);
   const paginatedRecords = useMemo(() => {
@@ -382,19 +458,20 @@ export default function DSPPage() {
   ) => {
     const { name, value } = e.target;
 
-    if (name === "DSP") {
-      const mode = dspCoverageMode[value] || "";
-      setCoverageMode(mode);
-      setFormData((p: DspData) => ({ 
-        ...p, 
-        DSP: value, 
-        Coverage_Period: "",
-        // Clear year/quarter if not in monthly mode
-        Year_Period: mode === "monthly" ? p.Year_Period : "",
-        Quarter_Period: mode === "monthly" ? p.Quarter_Period : ""
+    if (name === "Date_billed") {
+      setFormData((p: DspData) => ({
+        ...p,
+        Date_billed: value,
+        Status: value !== "" ? "Billed" : p.Status,
       }));
       return;
     }
+
+    if (["Gross", "Amount_Received", "Bank_Charge"].includes(name)) {
+      setFormData((p: DspData) => ({ ...p, [name]: formatInputNumber(value) }));
+      return;
+    }
+
     if (name === "Claim_Type" && !specialClaims.includes(value)) {
       setFormData((p: DspData) => ({
         ...p,
@@ -409,15 +486,24 @@ export default function DSPPage() {
 
   const handleEditClick = (record: DSPRecord) => {
     setEditingId(record.Collection_ID);
+    let startDate = "";
+    let endDate = "";
+    if (record.Coverage_Period && record.Coverage_Period.includes(" to ")) {
+      [startDate, endDate] = record.Coverage_Period.split(" to ");
+    }
+
     setFormData({
+      Coverage_Start_Date: startDate,
+      Coverage_End_Date: endDate,
       DSP: record.DSP || "",
       Coverage_Period: record.Coverage_Period || "",
+      Data_Coverage: record.Data_Coverage || "",
       Licensor: record.Licensor || "",
       Claim_Type: record.Claim_Type || "",
       Email_Subject: record.Email_Subject || "",
-      Status: record.Status || "",
-      Confirm_Date: record.Confirm_Date
-        ? record.Confirm_Date.split("T")[0]
+      Status: record.Status || "Pending",
+      Notification_date: record.Notification_date
+        ? record.Notification_date.split("T")[0]
         : "",
       Deadline_of_Billing: record.Deadline_of_Billing
         ? record.Deadline_of_Billing.split("T")[0]
@@ -425,26 +511,23 @@ export default function DSPPage() {
       Date_Received: record.Date_Received
         ? record.Date_Received.split("T")[0]
         : "",
-      Gross: record.Gross?.toString() || "",
+      Gross: formatInputNumber(record.Gross?.toString() || ""),
       Currency: record.Currency || "",
-      Exchange_Rate: record.Exchange_Rate?.toString() || "",
-      Peso_Value: record.Peso_Value?.toString() || "",
-      Remarks: record.Remarks || "",
-      Remarks2: record.Remarks2 || "",
-      billing_date: record.billing_date
-        ? record.billing_date.split("T")[0]
-        : "",
+      Exchange_Rate: formatDisplayNumber(record.Exchange_Rate, 4),
+      Peso_Value: formatDisplayNumber(record.Peso_Value, 2),
+      DDM_Remarks: record.DDM_Remarks || "",
+      Licensing_Remarks: record.Licensing_Remarks || "",
+      Date_billed: record.Date_billed ? record.Date_billed.split("T")[0] : "",
       "SI#": record["SI#"] || "",
       "BI#": record["BI#"] || "",
       Division: record.Division || "",
-      Amount_Received: record.Amount_Received?.toString() || "",
-      Bank_Charge: record.Bank_Charge?.toString() || "",
-      Total_Amount: record.Total_Amount?.toString() || "",
-      Year_Period: record.Year_Period || "",
-      Quarter_Period: record.Quarter_Period || "",
-      Variance: record.Variance?.toString() || "0",
+      Amount_Received: formatInputNumber(
+        record.Amount_Received?.toString() || "",
+      ),
+      Bank_Charge: formatInputNumber(record.Bank_Charge?.toString() || ""),
+      Total_Amount: formatDisplayNumber(record.Total_Amount, 2),
+      Variance: formatDisplayNumber(record.Variance, 2),
     });
-    if (record.DSP) setCoverageMode(dspCoverageMode[record.DSP] || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -452,10 +535,21 @@ export default function DSPPage() {
     e.preventDefault();
     setLoading(true);
     setGeneratedId(null);
-
-    let dataToSubmit = { ...formData };
+    let dataToSubmit = {
+      ...formData,
+      Gross: formData.Gross.replace(/,/g, ""),
+      Amount_Received: formData.Amount_Received.replace(/,/g, ""),
+      Bank_Charge: formData.Bank_Charge.replace(/,/g, ""),
+      Total_Amount: formData.Total_Amount.replace(/,/g, ""),
+      Peso_Value: formData.Peso_Value.replace(/,/g, ""),
+      Variance: formData.Variance.replace(/,/g, ""),
+    };
     if (!editingId) {
-      dataToSubmit.Collection_ID = generateCollectionId(formData.DSP, records);
+      dataToSubmit.Collection_ID = generateCollectionId(
+        formData.DSP,
+        formData.Coverage_Start_Date,
+        records,
+      );
     }
     const url = editingId ? `${API_BASE}/dsp/${editingId}` : `${API_BASE}/dsp`;
     const method = editingId ? "PUT" : "POST";
@@ -473,21 +567,24 @@ export default function DSPPage() {
       setGeneratedId(result.Collection_ID);
       setEditingId(null);
       setFormData({
+        Coverage_Start_Date: "",
+        Coverage_End_Date: "",
         Coverage_Period: "",
+        Data_Coverage: "",
         Licensor: "",
         Claim_Type: "",
         Email_Subject: "",
-        Status: "",
-        Confirm_Date: "",
+        Status: "Pending",
+        Notification_date: "",
         Deadline_of_Billing: "",
         Date_Received: "",
         Gross: "",
         Currency: "",
-        Exchange_Rate: "",
+        Exchange_Rate: "55",
         Peso_Value: "",
-        Remarks: "",
-        Remarks2: "",
-        billing_date: "",
+        DDM_Remarks: "",
+        Licensing_Remarks: "",
+        Date_billed: "",
         DSP: "",
         "SI#": "",
         "BI#": "",
@@ -495,9 +592,7 @@ export default function DSPPage() {
         Amount_Received: "",
         Bank_Charge: "",
         Total_Amount: "",
-        Year_Period: "",
-        Quarter_Period: "",
-        Variance: "0",
+        Variance: "0.00",
       });
       fetchDSP();
     } catch (err: any) {
@@ -507,61 +602,279 @@ export default function DSPPage() {
       setLoading(false);
     }
   };
+
+  const formatDateForDB = (dateStr: string) => {
+    if (!dateStr || dateStr.trim() === "") return null;
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date.toISOString().split("T")[0];
+  };
+
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+
+        const parseCSV = (csvText: string) => {
+          const rows = [];
+          let currRow = [];
+          let currCol = "";
+          let inQuotes = false;
+          for (let i = 0; i < csvText.length; i++) {
+            const char = csvText[i];
+            const next = csvText[i + 1];
+            if (inQuotes) {
+              if (char === '"') {
+                if (next === '"') {
+                  currCol += '"';
+                  i++;
+                } else {
+                  inQuotes = false;
+                }
+              } else {
+                currCol += char;
+              }
+            } else {
+              if (char === '"') {
+                inQuotes = true;
+              } else if (char === ",") {
+                currRow.push(currCol.trim());
+                currCol = "";
+              } else if (char === "\n" || char === "\r") {
+                currRow.push(currCol.trim());
+                if (currRow.join("").length > 0) rows.push(currRow);
+                currRow = [];
+                currCol = "";
+                if (char === "\r" && next === "\n") i++;
+              } else {
+                currCol += char;
+              }
+            }
+          }
+          if (currRow.length > 0 || currCol !== "") {
+            currRow.push(currCol.trim());
+            rows.push(currRow);
+          }
+          return rows;
+        };
+
+        const allRows = parseCSV(text);
+        if (allRows.length < 2) return;
+
+        const rawHeaders = allRows[0];
+        const dataRows = allRows.slice(1);
+
+        const headerMap: Record<number, string> = {};
+        rawHeaders.forEach((h, idx) => {
+          const clean = h.toLowerCase().replace(/[^a-z0-9#]/g, "");
+          if (clean.includes("collectionid")) headerMap[idx] = "Collection_ID";
+          else if (clean.includes("division")) headerMap[idx] = "Division";
+          else if (clean.includes("dsp")) headerMap[idx] = "DSP";
+          else if (clean.includes("coverageperiod"))
+            headerMap[idx] = "Coverage_Period";
+          else if (clean.includes("licensor")) headerMap[idx] = "Licensor";
+          else if (clean.includes("claimtype")) headerMap[idx] = "Claim_Type";
+          else if (clean.includes("emailsubject"))
+            headerMap[idx] = "Email_Subject";
+          else if (clean.includes("notificationdate"))
+            headerMap[idx] = "Notification_date";
+          else if (clean.includes("deadlineofbilling"))
+            headerMap[idx] = "Deadline_of_Billing";
+          else if (clean === "gross") headerMap[idx] = "Gross";
+          else if (clean === "currency") headerMap[idx] = "Currency";
+          else if (clean.includes("datereceived"))
+            headerMap[idx] = "Date_Received";
+          else if (clean.includes("si#")) headerMap[idx] = "SI#";
+          else if (clean.includes("bi#")) headerMap[idx] = "BI#";
+          else if (clean.includes("amountreceived"))
+            headerMap[idx] = "Amount_Received";
+          else if (clean.includes("bankcharge")) headerMap[idx] = "Bank_Charge";
+          else if (clean.includes("totalamount"))
+            headerMap[idx] = "Total_Amount";
+          else if (clean.includes("exchangerate"))
+            headerMap[idx] = "Exchange_Rate";
+          else if (clean.includes("pesovalue")) headerMap[idx] = "Peso_Value";
+          else if (clean.includes("billingdate"))
+            headerMap[idx] = "Date_billed";
+          else if (clean === "status") headerMap[idx] = "Status";
+          else if (clean.includes("licensingremarks"))
+            headerMap[idx] = "Licensing_Remarks";
+          else if (clean.includes("variance")) headerMap[idx] = "Variance";
+          else if (clean.includes("ddm") || clean.includes("legal"))
+            headerMap[idx] = "DDM_Remarks";
+        });
+
+        let localExistingRecords = [...records];
+
+        const jsonRecords = dataRows.map((row) => {
+          let obj: any = {};
+          row.forEach((val, idx) => {
+            const key = headerMap[idx];
+            if (!key) return;
+
+            if (
+              [
+                "Gross",
+                "Amount_Received",
+                "Bank_Charge",
+                "Total_Amount",
+                "Exchange_Rate",
+                "Peso_Value",
+                "Variance",
+              ].includes(key)
+            ) {
+              const cleanNum = val.replace(/[^\d.-]/g, "");
+              obj[key] =
+                cleanNum === "" || cleanNum === "-" ? 0 : parseFloat(cleanNum);
+            } else if (
+              [
+                "Notification_date",
+                "Deadline_of_Billing",
+                "Date_Received",
+                "Date_billed",
+              ].includes(key)
+            ) {
+              if (!val || val === "-" || val === "") {
+                obj[key] = null;
+              } else {
+                const d = new Date(val);
+                obj[key] = isNaN(d.getTime())
+                  ? null
+                  : d.toISOString().split("T")[0];
+              }
+            } else {
+              obj[key] = val;
+            }
+          });
+
+          if (!obj.Collection_ID || obj.Collection_ID === "") {
+            // MODIFIED: Attempting to use start date from parsed coverage period if available
+            let startYearDate = "";
+            if (obj.Coverage_Period && obj.Coverage_Period.includes(" to ")) {
+              startYearDate = obj.Coverage_Period.split(" to ")[0];
+            } else {
+              startYearDate = new Date().toISOString(); // Fallback
+            }
+            obj.Collection_ID = generateCollectionId(
+              obj.DSP || "",
+              startYearDate,
+              localExistingRecords,
+            );
+          }
+          localExistingRecords.push(obj);
+          return obj;
+        });
+
+        setLoading(true);
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const record of jsonRecords) {
+          const response = await fetch(`${API_BASE}/dsp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(record),
+          });
+
+          if (response.ok) successCount++;
+          else {
+            const errorMsg = await response.json();
+            console.error(`Row ${record.Collection_ID} failed:`, errorMsg);
+            failCount++;
+          }
+        }
+
+        alert(
+          `Ingestion Finished!\nSuccess: ${successCount}\nFailed: ${failCount}`,
+        );
+        fetchDSP();
+      } catch (err: any) {
+        console.error("Bulk Error:", err);
+        alert("Error parsing CSV. Check console for details.");
+      } finally {
+        setLoading(false);
+        if (e.target) e.target.value = "";
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const exportToExcel = () => {
     const headers = [
       "Collection ID",
+      "Division",
       "DSP",
       "Coverage Period",
+      "Data Coverage",
       "Licensor",
       "Claim Type",
-      "Status",
       "Email Subject",
-      "Confirm Date",
+      "Notification Date",
       "Deadline of Billing",
-      "Date Received",
-      "Currency",
       "Gross",
-      "Exchange Rate",
-      "Peso Value",
+      "Currency",
       "Remarks",
-      "Remarks 2",
-      "Billing Date",
+      "Date Received",
       "SI#",
       "BI#",
-      "Division",
       "Amount Received",
+      "Bank Charge",
       "Total Amount",
-      "Year Period",
-      "Quarter Period",
+      "Exchange Rate",
+      "Peso Value",
+      "Billing Date",
+      "Status",
+      "Remarks 2",
       "Variance",
+      "society deducted",
+      "%deducted",
     ];
-    const rows = filteredRecords.map((r) => [
-      r.Collection_ID ?? "",
-      r.DSP ?? "",
-      r.Coverage_Period ?? "",
-      r.Licensor ?? "",
-      r.Claim_Type ?? "",
-      r.Status ?? "",
-      r.Email_Subject ?? "",
-      r.Confirm_Date ?? "",
-      r.Deadline_of_Billing ?? "",
-      r.Date_Received ?? "",
-      r.Currency ?? "",
-      r.Gross ?? "",
-      r.Exchange_Rate ?? "",
-      r.Peso_Value ?? "",
-      r.Remarks ?? "",
-      r.Remarks2 ?? "",
-      r.billing_date ?? "",
-      r["SI#"] ?? "",
-      r["BI#"] ?? "",
-      r.Division ?? "",
-      r.Amount_Received ?? "",
-      r.Total_Amount ?? "",
-      r.Year_Period ?? "",
-      r.Quarter_Period ?? "",
-      r.Variance ?? "",
-    ]);
+    const rows = filteredRecords.map((r) => {
+      const gross = Number(r.Gross) || 0;
+      const amountReceived = Number(r.Amount_Received) || 0;
+      const societyDeducted = gross - amountReceived;
+      const percentDeducted = gross !== 0 ? societyDeducted / gross : 0;
+
+      // START: NEW LOGIC FOR FOREIGN SOURCE VARIANCE
+      let varianceValue = Number(r.Variance) || 0;
+      if (r.DSP === "Foreign") {
+        varianceValue = societyDeducted - amountReceived;
+      }
+      // END: NEW LOGIC FOR FOREIGN SOURCE VARIANCE
+
+      return [
+        r.Collection_ID ?? "",
+        r.Division ?? "",
+        r.DSP ?? "",
+        r.Coverage_Period ?? "",
+        r.Data_Coverage ?? "",
+        r.Licensor ?? "",
+        r.Claim_Type ?? "",
+        r.Email_Subject ?? "",
+        r.Notification_date ?? "",
+        r.Deadline_of_Billing ?? "",
+        formatDisplayNumber(r.Gross, 2),
+        r.Currency ?? "",
+        r.DDM_Remarks ?? "",
+        r.Date_Received ?? "",
+        r["SI#"] ?? "",
+        r["BI#"] ?? "",
+        formatDisplayNumber(r.Amount_Received, 2),
+        formatDisplayNumber(r.Bank_Charge, 2),
+        formatDisplayNumber(r.Total_Amount, 2),
+        formatDisplayNumber(r.Exchange_Rate, 4),
+        formatDisplayNumber(r.Peso_Value, 2),
+        r.Date_billed ?? "",
+        r.Status ?? "",
+        r.Licensing_Remarks ?? "",
+        formatDisplayNumber(varianceValue, 2), // Updated to use the variable
+        societyDeducted.toFixed(2),
+        (percentDeducted * 100).toFixed(2) + "%",
+      ];
+    });
     const csv = [headers, ...rows]
       .map((row) =>
         row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","),
@@ -570,9 +883,12 @@ export default function DSPPage() {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "dsp_records.csv";
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    link.download = `${timestamp}_Revenue_Tracker.csv`;
     link.click();
   };
+
   return (
     <div className="min-h-screen w-full bg-[url('/BG.png')] lg:bg-[url('/BG-laptop.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center">
       <div className="relative w-full bg-[#004aad] p-3 sticky top-0 z-50">
@@ -580,24 +896,24 @@ export default function DSPPage() {
           <div className="flex items-center">
             <Image src="/omni.png" alt="LOGO" width={200} height={50} />
             <div className="text-white text-xl">
-            Foreign Revenue Tracker
+              Unified Revenue Tracking System
             </div>
           </div>
           <button
             type="button"
             onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold px-6 py-2 rounded transition-all shadow-md uppercase text-xs"
+            className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded transition-all shadow-md uppercase text-xs"
           >
             Logout
           </button>
         </div>
       </div>
       <div className="p-4 space-y-8">
-        <form
+       <form
           onSubmit={handleSubmit}
-          className="grid grid-cols-1 lg:grid-cols-4 gap-4 bg-[#FFF9E5] p-4 items-stretch shadow-lg rounded-sm"
+          className="flex flex-wrap gap-4 bg-[#FFF9E5] p-4 items-stretch shadow-lg rounded-sm"
         >
-          <div className="lg:col-span-2">
+          <div style={{ flex: '40%', minWidth: '300px' }}>
             <Section
               title="DDD/Legal Form"
               columns="grid-cols-1 md:grid-cols-5"
@@ -611,39 +927,30 @@ export default function DSPPage() {
                 onChange={handleChange}
               />
               <Select
-                label="Omni Play"
+                label="Source"
                 name="DSP"
                 value={formData.DSP}
                 options={DSP}
                 onChange={handleChange}
               />
-              <Select
-                label="Coverage Period"
-                name="Coverage_Period"
-                value={formData.Coverage_Period}
-                options={
-                  coverageMode === "monthly" ? monthlyOptions : quarterlyOptions
-                }
+              <DateInput
+                label="Start Date"
+                name="Coverage_Start_Date"
+                value={formData.Coverage_Start_Date}
                 onChange={handleChange}
               />
-              <Select
-                label="Year"
-                name="Year_Period"
-                value={formData.Year_Period}
-                disabled={coverageMode !== "monthly" || isDisabled([ROLE.LEGAL])}
-                options={Array.from(
-                  { length: END_YEAR - START_YEAR + 1 },
-                  (_, i) => (END_YEAR - i).toString(),
-                )}
+              <DateInput
+                label="End Date"
+                name="Coverage_End_Date"
+                value={formData.Coverage_End_Date}
                 onChange={handleChange}
               />
-              <Select
-                label="Quarter"
-                name="Quarter_Period"
-                value={formData.Quarter_Period}
-                disabled={coverageMode !== "monthly" || isDisabled([ROLE.LEGAL])}
-                options={Array.from({ length: 4 }, (_, i) => `Q${i + 1}`)}
-                onChange={handleChange}
+              <Input
+                label="Data Coverage"
+                name="Data_Coverage"
+                value={formData.Data_Coverage}
+                readOnly
+                placeholder="2026(Q1)-2027(Q2)"
               />
               <Select
                 label="Licensor"
@@ -666,9 +973,9 @@ export default function DSPPage() {
                 onChange={handleChange}
               />
               <DateInput
-                label="Confirm Date"
-                name="Confirm_Date"
-                value={formData.Confirm_Date}
+                label="Notification Date"
+                name="Notification_date"
+                value={formData.Notification_date}
                 onChange={handleChange}
               />
               <DateInput
@@ -680,9 +987,10 @@ export default function DSPPage() {
               <Input
                 label="Gross"
                 name="Gross"
-                type="number"
+                type="text"
                 value={formData.Gross || ""}
                 onChange={handleChange}
+                placeholder="0.00"
               />
               <Select
                 label="Currency"
@@ -693,15 +1001,16 @@ export default function DSPPage() {
               />
               <div className="w-[320%]">
                 <Input
-                  label="Remarks"
-                  name="Remarks"
-                  value={formData.Remarks}
+                  label="DDM Remarks"
+                  name="DDM_Remarks"
+                  value={formData.DDM_Remarks}
                   onChange={handleChange}
                 />
               </div>
             </Section>
           </div>
-          <div className="lg:col-span-1">
+
+          <div style={{ flex: '25%', minWidth: '300px' }}>
             <Section
               title="Accounting Form"
               columns="grid-cols-3"
@@ -716,7 +1025,7 @@ export default function DSPPage() {
               <Input
                 label="SI#"
                 name="SI#"
-                type="number"
+                type="text"
                 value={formData["SI#"] || ""}
                 onChange={handleChange}
               />
@@ -728,23 +1037,32 @@ export default function DSPPage() {
                 onChange={handleChange}
               />
               <Input
-                label="Amount"
+                label="Amount Received"
                 name="Amount_Received"
-                type="number"
+                type="text"
                 value={formData.Amount_Received || ""}
                 onChange={handleChange}
+                placeholder="0.00"
               />
-              <Input
-                label="Bank Charge"
-                name="Bank_Charge"
-                type="number"
-                value={formData.Bank_Charge || ""}
+              <Select
+                label="Currency"
+                name="Currency"
+                value={formData.Currency}
+                options={currencies}
                 onChange={handleChange}
               />
               <Input
-                label="Total Amount"
+                label={`Bank Charge (${formData.Currency || "---"})`}
+                name="Bank_Charge"
+                type="text"
+                value={formData.Bank_Charge || ""}
+                onChange={handleChange}
+                placeholder="0.00"
+              />
+              <Input
+                label="Total AMT"
                 name="Total_Amount"
-                type="number"
+                type="text"
                 value={formData.Total_Amount || ""}
                 readOnly
               />
@@ -752,21 +1070,22 @@ export default function DSPPage() {
                 label="Exchange Rate"
                 name="Exchange_Rate"
                 type="number"
+                step="0.0001"
                 value={formData.Exchange_Rate || ""}
                 onChange={handleChange}
               />
-              <div className="w-[220%]">
-                <Input
-                  label="Peso Value"
-                  name="Peso_Value"
-                  type="number"
-                  value={formData.Peso_Value || ""}
-                  readOnly
-                />
-              </div>
+              <Input
+                label="Peso Value"
+                name="Peso_Value"
+                type="text"
+                value={formData.Peso_Value || ""}
+                readOnly
+              />
             </Section>
           </div>
-          <div className="lg:col-span-1">
+
+          {/* Licensing Form Container - Adjust style={{ flex: 'X%' }} to control width */}
+          <div style={{ flex: '20%', minWidth: '200px' }}>
             <Section
               title="Licensing Form"
               columns="grid-cols-1"
@@ -774,8 +1093,8 @@ export default function DSPPage() {
             >
               <DateInput
                 label="Billing Date"
-                name="billing_date"
-                value={formData.billing_date}
+                name="Date_billed"
+                value={formData.Date_billed}
                 onChange={handleChange}
               />
               <Select
@@ -786,25 +1105,22 @@ export default function DSPPage() {
                 onChange={handleChange}
               />
               <Input
-                label="Remarks"
-                name="Remarks2"
-                value={formData.Remarks2}
+                label="Licensing Remarks"
+                name="Licensing_Remarks"
+                value={formData.Licensing_Remarks}
                 onChange={handleChange}
               />
             </Section>
           </div>
-          <div className="col-span-full flex gap-4 ">
+
+          <div className="w-full flex gap-4 ">
             <button
               type="submit"
               disabled={
                 loading ||
                 isDisabled([ROLE.LEGAL, ROLE.ACCOUNTING, ROLE.LICENSING])
               }
-              className={`${
-                editingId
-                  ? "bg-orange-600"
-                  : "bg-yellow-500 hover:bg-yellow-600"
-              } text-white text-xs font-bold py-2 px-6 rounded disabled:bg-gray-400`}
+              className={`${editingId ? "bg-orange-600" : "bg-yellow-500 hover:bg-yellow-600"} text-white text-xs font-bold py-2 px-6 rounded disabled:bg-gray-400`}
             >
               {loading
                 ? "Saving…"
@@ -818,21 +1134,24 @@ export default function DSPPage() {
                 onClick={() => {
                   setEditingId(null);
                   setFormData({
+                    Coverage_Start_Date: "",
+                    Coverage_End_Date: "",
                     Coverage_Period: "",
+                    Data_Coverage: "",
                     Licensor: "",
                     Claim_Type: "",
                     Email_Subject: "",
-                    Status: "",
-                    Confirm_Date: "",
+                    Status: "Pending",
+                    Notification_date: "",
                     Deadline_of_Billing: "",
                     Date_Received: "",
                     Gross: "",
                     Currency: "",
-                    Exchange_Rate: "",
+                    Exchange_Rate: "55",
                     Peso_Value: "",
-                    Remarks: "",
-                    Remarks2: "",
-                    billing_date: "",
+                    DDM_Remarks: "",
+                    Licensing_Remarks: "",
+                    Date_billed: "",
                     DSP: "",
                     "SI#": "",
                     "BI#": "",
@@ -840,9 +1159,7 @@ export default function DSPPage() {
                     Amount_Received: "",
                     Bank_Charge: "",
                     Total_Amount: "",
-                    Year_Period: "",
-                    Quarter_Period: "",
-                    Variance: "0",
+                    Variance: "0.00",
                   });
                 }}
                 className="bg-gray-500 text-white text-xs font-bold py-2 px-6 rounded"
@@ -852,11 +1169,25 @@ export default function DSPPage() {
             )}
           </div>
         </form>
+
         <h2 className="text-xl font-bold -mt-4 mb-4">
-          DSP and Foreign records logged
+          Sources Revenue Records
         </h2>
+
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div className="flex items-end">
+          <div className="flex items-end gap-2 flex-wrap">
+            <div className="flex flex-col">
+              <label className="text-[10px] font-bold block mb-1 uppercase text-gray-500">
+                Search Email Subject
+              </label>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="p-1.5 border rounded text-xs bg-white w-48 shadow-sm"
+              />
+            </div>
             <div className="flex flex-col">
               <label className="text-[10px] font-bold block mb-1 uppercase text-gray-500">
                 Filter by DSP
@@ -864,7 +1195,7 @@ export default function DSPPage() {
               <select
                 value={selectedDSP}
                 onChange={(e) => setSelectedDSP(e.target.value)}
-                className="dspSelect"
+                className="p-1.5 border rounded text-xs bg-white shadow-sm"
               >
                 <option value="ALL">All DSPs ({records.length})</option>
                 {DSP.map((dsp) => (
@@ -881,17 +1212,54 @@ export default function DSPPage() {
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
-                className="billing"
+                className="p-1.5 border rounded text-xs bg-white shadow-sm"
               >
                 <option value="desc">Latest to Oldest</option>
                 <option value="asc">Oldest to Latest</option>
               </select>
             </div>
-            <button onClick={exportToExcel} className="excel">
+            <button
+              onClick={() => {
+                setShowPendingOnly(!showPendingOnly);
+                if (!showPendingOnly) setShowBilledOnly(false);
+              }}
+              className={`text-[10px] font-bold px-3 py-1.5 rounded transition-all shadow-sm uppercase h-[34px] min-w-[120px] ${showPendingOnly ? "bg-orange-500 text-white" : "bg-white text-gray-700"}`}
+            >
+              {showPendingOnly ? "Showing Pending" : "Show Pending"}
+            </button>
+            <button
+              onClick={() => {
+                setShowBilledOnly(!showBilledOnly);
+                if (!showBilledOnly) setShowPendingOnly(false);
+              }}
+              className={`text-[10px] font-bold px-3 py-1.5 rounded transition-all shadow-sm uppercase h-[34px] min-w-[120px] ${showBilledOnly ? "bg-blue-600 text-white" : "bg-white text-gray-700"}`}
+            >
+              {showBilledOnly ? "Showing Billed" : "Show Billed"}
+            </button>
+
+            <input
+              type="file"
+              accept=".csv"
+              ref={fileInputRef}
+              onChange={handleBulkUpload}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-blue-700 hover:bg-blue-800 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm h-[34px]"
+            >
+              BULK INGEST
+            </button>
+
+            <button
+              onClick={exportToExcel}
+              className="bg-yellow-500 hover:bg-yellow-700 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm h-[34px]"
+            >
               EXPORT EXCEL
             </button>
           </div>
         </div>
+
         {tableLoading ? (
           <p className="text-sm italic">Loading records…</p>
         ) : (
@@ -899,79 +1267,31 @@ export default function DSPPage() {
             <table className="w-full table-fixed border-collapse text-[10px] font-sans">
               <thead className="bg-[#f2f2f2] border-b border-gray-300">
                 <tr className="divide-x divide-gray-300">
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    ID
-                  </th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Division
-                  </th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    DSP
-                  </th>
-                  <th className="w-[8%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Period
-                  </th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Licensor
-                  </th>
-                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Claim
-                  </th>
-                  <th className="w-[10%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Subject
-                  </th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Confirm
-                  </th>
-                  <th className="w-[5%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Deadline
-                  </th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Gross
-                  </th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Curr
-                  </th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Rate
-                  </th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Remarks
-                  </th>
-                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Received
-                  </th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    SI#
-                  </th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    BI#
-                  </th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Amount
-                  </th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Charge
-                  </th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Total
-                  </th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Rate
-                  </th>
-                  <th className="w-[7%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Peso
-                  </th>
-                  <th className="w-[6%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Billing
-                  </th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Status
-                  </th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
-                    Remarks
-                  </th>
-                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-gray-700">
+                  <th className="w-[6%] bg-blue-100 p-1">ID</th>
+                  <th className="w-[5%] bg-blue-100 p-1">Division</th>
+                  <th className="w-[5%] bg-blue-100 p-1">Source</th>
+                  <th className="w-[6%] bg-blue-100 p-1">Coverage Period</th>
+                  <th className="w-[6%] bg-blue-100 p-1">Data Coverage</th>
+                  <th className="w-[6%] bg-blue-100 p-1">Licensor</th>
+                  <th className="w-[7%] bg-blue-100 p-1">Claim</th>
+                  <th className="w-[10%] bg-blue-100 p-1">Email Subject</th>
+                  <th className="w-[5%] bg-blue-100 p-1">Notification Date</th>
+                  <th className="w-[5%] bg-blue-100 p-1">Deadline</th>
+                  <th className="w-[6%] bg-blue-100 p-1">Gross Amount</th>
+                  <th className="w-[4%] bg-blue-100 p-1">Currency</th>
+                  <th className="w-[6%] bg-blue-100 p-1">DDM/Legal Remarks</th>
+                  <th className="w-[5%] bg-red-100 p-1">Date Received</th>
+                  <th className="w-[4%] bg-red-100 p-1">SI#</th>
+                  <th className="w-[4%] bg-red-100 p-1">BI#</th>
+                  <th className="w-[4%] bg-red-100 p-1">Amount Received</th>
+                  <th className="w-[4%] bg-red-100 p-1">Bank Charge</th>
+                  <th className="w-[4%] bg-red-100 p-1">Total Amt</th>
+                  <th className="w-[4%] bg-red-100 p-1">Exchange Rate</th>
+                  <th className="w-[6%] bg-red-100 p-1">Peso Value</th>
+                  <th className="w-[6%] bg-yellow-100 p-1">Billing Date</th>
+                  <th className="w-[4%] bg-yellow-100 p-1">Status</th>
+                  <th className="w-[4%] bg-yellow-100 p-1">LIC Rem.</th>
+                  <th className="w-[4%] px-1 py-1.5 text-center font-bold text-white bg-[#004aad]">
                     Variance
                   </th>
                 </tr>
@@ -980,9 +1300,7 @@ export default function DSPPage() {
                 {paginatedRecords.map((r) => (
                   <tr
                     key={r.Collection_ID}
-                    className={`border-b border-gray-300 divide-x divide-gray-300 hover:bg-gray-50 transition-colors ${
-                      editingId === r.Collection_ID ? "bg-blue-50" : ""
-                    }`}
+                    className={`border-b border-gray-300 divide-x divide-gray-300 hover:bg-gray-50 transition-colors ${editingId === r.Collection_ID ? "bg-blue-50" : ""}`}
                   >
                     <td className="px-1 py-1 text-blue-600 font-bold">
                       <button
@@ -992,78 +1310,95 @@ export default function DSPPage() {
                         {r.Collection_ID}
                       </button>
                     </td>
-                    <td className="px-1 py-1 text-center truncate">
+                    <td className="px-1 py-1 text-left truncate">
                       {r.Division}
                     </td>
                     <td className="px-1 py-1 text-center truncate">{r.DSP}</td>
                     <td className="px-1 py-1 text-center truncate">
                       {r.Coverage_Period}
                     </td>
+                    <td className="px-1 py-1 text-center truncate font-semibold">
+                      {r.Data_Coverage}
+                    </td>
                     <td className="px-1 py-1 text-center">{r.Licensor}</td>
-                    <td className="px-1 py-1 text-center">{r.Claim_Type}</td>
+                    <td className="px-1 py-1 text-center truncate">
+                      {r.Claim_Type}
+                    </td>
                     <td className="px-1 py-1 truncate">{r.Email_Subject}</td>
                     <td className="px-1 py-1 text-center">
-                      {formatDateDisplay(r.Confirm_Date)}
+                      {formatDateDisplay(r.Notification_date)}
                     </td>
                     <td className="px-1 py-1 text-center">
                       {formatDateDisplay(r.Deadline_of_Billing)}
                     </td>
-                    <td className="px-1 py-1 text-center">{r.Gross}</td>
+                    <td className="px-1 py-1 text-right">
+                      {formatDisplayNumber(r.Gross, 2)}
+                    </td>
                     <td className="px-1 py-1 text-center">{r.Currency}</td>
-                    <td className="px-1 py-1 text-center">{r.Exchange_Rate}</td>
                     <td
                       className="px-1 py-1 truncate text-center"
-                      title={r.Remarks || ""}
+                      title={r.DDM_Remarks || ""}
                     >
-                      {r.Remarks}
+                      {r.DDM_Remarks}
                     </td>
                     <td className="px-1 py-1 text-center">
                       {formatDateDisplay(r.Date_Received)}
                     </td>
                     <td className="px-1 py-1 text-center">{r["SI#"]}</td>
-                    <td className="px-1 py-1 text-center">{r["BI#"]}</td>
-                    <td className="px-1 py-1 text-center">
-                      {r.Amount_Received}
+                    <td className="px-1 py-1 text-center truncate">
+                      {r["BI#"]}
                     </td>
-                    <td className="px-1 py-1 text-center">{r.Bank_Charge}</td>
-                    <td className="px-1 py-1 text-center">{r.Total_Amount}</td>
-                    <td className="px-1 py-1 text-center">{r.Exchange_Rate}</td>
-                    <td className="px-1 py-1 text-center">{r.Peso_Value}</td>
+                    <td className="px-1 py-1 text-right">
+                      {formatDisplayNumber(r.Amount_Received, 2)}
+                    </td>
+                    <td className="px-1 py-1 text-right">
+                      {formatDisplayNumber(r.Bank_Charge, 2)}
+                    </td>
+                    <td className="px-1 py-1 text-right">
+                      {formatDisplayNumber(r.Total_Amount, 2)}
+                    </td>
+                    <td className="px-1 py-1 text-right">
+                      {formatDisplayNumber(r.Exchange_Rate, 4)}
+                    </td>
+                    <td className="px-1 py-1 text-right">
+                      {formatDisplayNumber(r.Peso_Value, 2)}
+                    </td>
                     <td className="px-1 py-1 text-center">
-                      {formatDateDisplay(r.billing_date)}
+                      {formatDateDisplay(r.Date_billed)}
                     </td>
                     <td className="px-1 py-1 text-center">{r.Status}</td>
                     <td
                       className="px-1 py-1 truncate text-center"
-                      title={r.Remarks2 || ""}
+                      title={r.Licensing_Remarks || ""}
                     >
-                      {r.Remarks2}
+                      {r.Licensing_Remarks}
                     </td>
                     <td
-                      className={`px-1 py-1 text-center w-full truncate ${Number(r.Variance) !== 0 ? "text-red-600" : "text-green-600"}`}
+                      className={`px-1 py-1 text-right w-full truncate ${Number(String(r.Variance).replace(/,/g, "")) !== 0 ? "text-red-600" : "text-green-600"}`}
                     >
-                      {r.Variance || 0}
+                      {formatDisplayNumber(r.Variance, 2)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
             <div className="bg-white p-1 relative flex justify-center items-center border-t border-gray-300">
               <div className="absolute left-4 text-[11px] text-gray-700 hidden lg:block">
-                Showing
+                Showing{" "}
                 <span className="font-semibold">
                   {filteredRecords.length === 0
                     ? 0
                     : (currentPage - 1) * ROWS_PER_PAGE + 1}
-                </span>
-                to
+                </span>{" "}
+                to{" "}
                 <span className="font-semibold">
                   {Math.min(
                     currentPage * ROWS_PER_PAGE,
                     filteredRecords.length,
                   )}
-                </span>
-                of
+                </span>{" "}
+                of{" "}
                 <span className="font-semibold">{filteredRecords.length}</span>
               </div>
               <div className="flex items-center gap-2">
@@ -1071,11 +1406,11 @@ export default function DSPPage() {
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1 || tableLoading}
-                  className="pagination"
+                  className="px-3 py-1 border rounded text-[10px] bg-gray-100 disabled:opacity-50"
                 >
                   PREV
                 </button>
-                <div className="page">
+                <div className="text-[10px]">
                   PAGE {currentPage} / {totalPages || 1}
                 </div>
                 <button
@@ -1088,7 +1423,7 @@ export default function DSPPage() {
                     totalPages === 0 ||
                     tableLoading
                   }
-                  className="pagination"
+                  className="px-3 py-1 border rounded text-[10px] bg-gray-100 disabled:opacity-50"
                 >
                   NEXT
                 </button>
@@ -1100,3 +1435,4 @@ export default function DSPPage() {
     </div>
   );
 }
+
