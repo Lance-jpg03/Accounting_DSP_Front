@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getCookie } from "cookies-next";
 import Image from "next/image";
+import ForeignForm from "./foreignForm";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
 
 const ROLE = {
@@ -20,7 +21,6 @@ const generateCollectionId = (
 
   const prefix = dspName.trim().substring(0, 3).toUpperCase().padEnd(3, "X");
 
-  // Extract year and month from the Coverage Start Date
   const dateObj = new Date(coverageStartDate);
   if (isNaN(dateObj.getTime())) return "";
 
@@ -59,7 +59,7 @@ interface DspData {
   Coverage_Start_Date: string;
   Coverage_End_Date: string;
   Coverage_Period: string;
-  Licensor: string;
+  Society: string;
   Claim_Type: string;
   Email_Subject: string;
   Status: string;
@@ -83,12 +83,16 @@ interface DspData {
   Total_Amount: string;
   Variance: string;
   Data_Coverage?: string;
+  Origin: string;
+  Licensor: string;
+  Licensee: string;
+  Territory: string;
 }
 
 interface DSPRecord {
   Collection_ID: string;
   Coverage_Period: string | null;
-  Licensor: string;
+  Society: string;
   Claim_Type: string;
   Email_Subject: string;
   Status: string;
@@ -111,6 +115,10 @@ interface DSPRecord {
   Total_Amount: number | null;
   Variance: number | null;
   Data_Coverage?: string;
+  Origin: string;
+  Licensor: string;
+  Licensee: string;
+  Territory: string;
 }
 
 const DSP = [
@@ -146,7 +154,7 @@ const claimTypes = [
   "Foreign",
   "Flat Fee GEC",
 ];
-const licensors = [
+const Society = [
   "FILSCAP",
   "CASH",
   "APRA",
@@ -280,7 +288,7 @@ export default function DSPPage() {
     Coverage_Start_Date: "",
     Coverage_End_Date: "",
     Coverage_Period: "",
-    Licensor: "",
+    Society: "",
     Claim_Type: "",
     Email_Subject: "",
     Status: "Pending",
@@ -303,6 +311,10 @@ export default function DSPPage() {
     Total_Amount: "",
     Variance: "0.00",
     Data_Coverage: "",
+    Origin: "",
+    Licensor: "",
+    Licensee: "",
+    Territory: "",
   });
 
   useEffect(() => {
@@ -498,7 +510,7 @@ export default function DSPPage() {
       DSP: record.DSP || "",
       Coverage_Period: record.Coverage_Period || "",
       Data_Coverage: record.Data_Coverage || "",
-      Licensor: record.Licensor || "",
+      Society: record.Society || "",
       Claim_Type: record.Claim_Type || "",
       Email_Subject: record.Email_Subject || "",
       Status: record.Status || "Pending",
@@ -527,6 +539,10 @@ export default function DSPPage() {
       Bank_Charge: formatInputNumber(record.Bank_Charge?.toString() || ""),
       Total_Amount: formatDisplayNumber(record.Total_Amount, 2),
       Variance: formatDisplayNumber(record.Variance, 2),
+      Origin: record.Origin || "",
+      Licensor: record.Licensor || "",
+      Licensee: record.Licensee || "",
+      Territory: record.Territory || "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -571,7 +587,7 @@ export default function DSPPage() {
         Coverage_End_Date: "",
         Coverage_Period: "",
         Data_Coverage: "",
-        Licensor: "",
+        Society: "",
         Claim_Type: "",
         Email_Subject: "",
         Status: "Pending",
@@ -593,6 +609,10 @@ export default function DSPPage() {
         Bank_Charge: "",
         Total_Amount: "",
         Variance: "0.00",
+        Origin: "",
+        Licensor: "",
+        Licensee: "",
+        Territory: "",
       });
       fetchDSP();
     } catch (err: any) {
@@ -675,7 +695,7 @@ export default function DSPPage() {
           else if (clean.includes("dsp")) headerMap[idx] = "DSP";
           else if (clean.includes("coverageperiod"))
             headerMap[idx] = "Coverage_Period";
-          else if (clean.includes("licensor")) headerMap[idx] = "Licensor";
+          else if (clean.includes("Society")) headerMap[idx] = "Society";
           else if (clean.includes("claimtype")) headerMap[idx] = "Claim_Type";
           else if (clean.includes("emailsubject"))
             headerMap[idx] = "Email_Subject";
@@ -809,7 +829,7 @@ export default function DSPPage() {
       "DSP",
       "Coverage Period",
       "Data Coverage",
-      "Licensor",
+      "Society",
       "Claim Type",
       "Email Subject",
       "Notification Date",
@@ -851,7 +871,7 @@ export default function DSPPage() {
         r.DSP ?? "",
         r.Coverage_Period ?? "",
         r.Data_Coverage ?? "",
-        r.Licensor ?? "",
+        r.Society ?? "",
         r.Claim_Type ?? "",
         r.Email_Subject ?? "",
         r.Notification_date ?? "",
@@ -909,266 +929,297 @@ export default function DSPPage() {
         </div>
       </div>
       <div className="p-4 space-y-8">
-       <form
-          onSubmit={handleSubmit}
-          className="flex flex-wrap gap-4 bg-[#FFF9E5] p-4 items-stretch shadow-lg rounded-sm"
-        >
-          <div style={{ flex: '40%', minWidth: '300px' }}>
-            <Section
-              title="DDD/Legal Form"
-              columns="grid-cols-1 md:grid-cols-5"
-              disabled={isDisabled([ROLE.LEGAL])}
-            >
-              <Select
-                label="Division"
-                name="Division"
-                value={formData.Division}
-                options={["Digital", "Non-Digital"]}
-                onChange={handleChange}
-              />
-              <Select
-                label="Source"
-                name="DSP"
-                value={formData.DSP}
-                options={DSP}
-                onChange={handleChange}
-              />
-              <DateInput
-                label="Start Date"
-                name="Coverage_Start_Date"
-                value={formData.Coverage_Start_Date}
-                onChange={handleChange}
-              />
-              <DateInput
-                label="End Date"
-                name="Coverage_End_Date"
-                value={formData.Coverage_End_Date}
-                onChange={handleChange}
-              />
-              <Input
-                label="Data Coverage"
-                name="Data_Coverage"
-                value={formData.Data_Coverage}
-                readOnly
-                placeholder="2026(Q1)-2027(Q2)"
-              />
-              <Select
-                label="Licensor"
-                name="Licensor"
-                value={formData.Licensor}
-                options={licensors}
-                onChange={handleChange}
-              />
-              <Select
-                label="Claim Type"
-                name="Claim_Type"
-                value={formData.Claim_Type}
-                options={claimTypes}
-                onChange={handleChange}
-              />
-              <Input
-                label="Email Subject"
-                name="Email_Subject"
-                value={formData.Email_Subject}
-                onChange={handleChange}
-              />
-              <DateInput
-                label="Notification Date"
-                name="Notification_date"
-                value={formData.Notification_date}
-                onChange={handleChange}
-              />
-              <DateInput
-                label="Deadline of Billing"
-                name="Deadline_of_Billing"
-                value={formData.Deadline_of_Billing}
-                onChange={handleChange}
-              />
-              <Input
-                label="Gross"
-                name="Gross"
-                type="text"
-                value={formData.Gross || ""}
-                onChange={handleChange}
-                placeholder="0.00"
-              />
-              <Select
-                label="Currency"
-                name="Currency"
-                value={formData.Currency}
-                options={currencies}
-                onChange={handleChange}
-              />
-              <div className="w-[320%]">
-                <Input
-                  label="DDM Remarks"
-                  name="DDM_Remarks"
-                  value={formData.DDM_Remarks}
+        {/* CONDITIONAL FORM RENDERING */}
+        {formData.Origin === "Foreign" ? (
+          <ForeignForm
+            formData={formData}
+            setFormData={setFormData}
+            handleChange={handleChange}
+            handleSubmit={handleSubmit}
+            loading={loading}
+            editingId={editingId}
+            setEditingId={setEditingId}
+            DSP={DSP}
+            Society={Society}
+            claimTypes={claimTypes}
+            currencies={currencies}
+            Select={Select}
+            Input={Input}
+            DateInput={DateInput}
+          />
+        ) : (
+          /* ORIGINAL LOCAL FORM START */
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-wrap gap-4 bg-[#FFF9E5] p-4 items-stretch shadow-lg rounded-sm"
+          >
+            <div style={{ flex: "40%", minWidth: "300px" }}>
+              <Section
+                title="DDD/Legal Form"
+                columns="grid-cols-1 md:grid-cols-5"
+                disabled={isDisabled([ROLE.LEGAL])}
+              >
+                <Select
+                  label="Origin"
+                  name="Origin"
+                  value={formData.Origin}
+                  options={["Local", "Foreign"]}
                   onChange={handleChange}
                 />
-              </div>
-            </Section>
-          </div>
+                <Select
+                  label="Division"
+                  name="Division"
+                  value={formData.Division}
+                  options={["Digital", "Non-Digital"]}
+                  onChange={handleChange}
+                />
+                <Select
+                  label="Source"
+                  name="DSP"
+                  value={formData.DSP}
+                  options={DSP}
+                  onChange={handleChange}
+                />
+                <DateInput
+                  label="Start Date"
+                  name="Coverage_Start_Date"
+                  value={formData.Coverage_Start_Date}
+                  onChange={handleChange}
+                />
+                <DateInput
+                  label="End Date"
+                  name="Coverage_End_Date"
+                  value={formData.Coverage_End_Date}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="Data Coverage"
+                  name="Data_Coverage"
+                  value={formData.Data_Coverage}
+                  readOnly
+                  placeholder="2026(Q1)-2027(Q2)"
+                />
+                <Select
+                  label="Society"
+                  name="Society"
+                  value={formData.Society}
+                  options={Society}
+                  onChange={handleChange}
+                />
+                <Select
+                  label="Claim Type"
+                  name="Claim_Type"
+                  value={formData.Claim_Type}
+                  options={claimTypes}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="Email Subject"
+                  name="Email_Subject"
+                  value={formData.Email_Subject}
+                  onChange={handleChange}
+                />
+                <DateInput
+                  label="Notification Date"
+                  name="Notification_date"
+                  value={formData.Notification_date}
+                  onChange={handleChange}
+                />
+                <DateInput
+                  label="Deadline of Billing"
+                  name="Deadline_of_Billing"
+                  value={formData.Deadline_of_Billing}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="Gross"
+                  name="Gross"
+                  type="text"
+                  value={formData.Gross || ""}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                />
+                <Select
+                  label="Currency"
+                  name="Currency"
+                  value={formData.Currency}
+                  options={currencies}
+                  onChange={handleChange}
+                />
+                <div className="w-[211%]">
+                  <Input
+                    label="DDM Remarks"
+                    name="DDM_Remarks"
+                    value={formData.DDM_Remarks}
+                    onChange={handleChange}
+                  />
+                </div>
+              </Section>
+            </div>
 
-          <div style={{ flex: '25%', minWidth: '300px' }}>
-            <Section
-              title="Accounting Form"
-              columns="grid-cols-3"
-              disabled={isDisabled([ROLE.ACCOUNTING])}
-            >
-              <DateInput
-                label="Date Received"
-                name="Date_Received"
-                value={formData.Date_Received}
-                onChange={handleChange}
-              />
-              <Input
-                label="SI#"
-                name="SI#"
-                type="text"
-                value={formData["SI#"] || ""}
-                onChange={handleChange}
-              />
-              <Input
-                label="BI#"
-                name="BI#"
-                type="text"
-                value={formData["BI#"] || ""}
-                onChange={handleChange}
-              />
-              <Input
-                label="Amount Received"
-                name="Amount_Received"
-                type="text"
-                value={formData.Amount_Received || ""}
-                onChange={handleChange}
-                placeholder="0.00"
-              />
-              <Select
-                label="Currency"
-                name="Currency"
-                value={formData.Currency}
-                options={currencies}
-                onChange={handleChange}
-              />
-              <Input
-                label={`Bank Charge (${formData.Currency || "---"})`}
-                name="Bank_Charge"
-                type="text"
-                value={formData.Bank_Charge || ""}
-                onChange={handleChange}
-                placeholder="0.00"
-              />
-              <Input
-                label="Total AMT"
-                name="Total_Amount"
-                type="text"
-                value={formData.Total_Amount || ""}
-                readOnly
-              />
-              <Input
-                label="Exchange Rate"
-                name="Exchange_Rate"
-                type="number"
-                step="0.0001"
-                value={formData.Exchange_Rate || ""}
-                onChange={handleChange}
-              />
-              <Input
-                label="Peso Value"
-                name="Peso_Value"
-                type="text"
-                value={formData.Peso_Value || ""}
-                readOnly
-              />
-            </Section>
-          </div>
-
-          {/* Licensing Form Container - Adjust style={{ flex: 'X%' }} to control width */}
-          <div style={{ flex: '20%', minWidth: '200px' }}>
-            <Section
-              title="Licensing Form"
-              columns="grid-cols-1"
-              disabled={isDisabled([ROLE.LICENSING])}
-            >
-              <DateInput
-                label="Billing Date"
-                name="Date_billed"
-                value={formData.Date_billed}
-                onChange={handleChange}
-              />
-              <Select
-                label="Status"
-                name="Status"
-                value={formData.Status}
-                options={statuses}
-                onChange={handleChange}
-              />
-              <Input
-                label="Licensing Remarks"
-                name="Licensing_Remarks"
-                value={formData.Licensing_Remarks}
-                onChange={handleChange}
-              />
-            </Section>
-          </div>
-
-          <div className="w-full flex gap-4 ">
-            <button
-              type="submit"
-              disabled={
-                loading ||
-                isDisabled([ROLE.LEGAL, ROLE.ACCOUNTING, ROLE.LICENSING])
-              }
-              className={`${editingId ? "bg-orange-600" : "bg-yellow-500 hover:bg-yellow-600"} text-white text-xs font-bold py-2 px-6 rounded disabled:bg-gray-400`}
-            >
-              {loading
-                ? "Saving…"
-                : editingId
-                  ? "Update DSP Record"
-                  : "Save DSP Record"}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingId(null);
-                  setFormData({
-                    Coverage_Start_Date: "",
-                    Coverage_End_Date: "",
-                    Coverage_Period: "",
-                    Data_Coverage: "",
-                    Licensor: "",
-                    Claim_Type: "",
-                    Email_Subject: "",
-                    Status: "Pending",
-                    Notification_date: "",
-                    Deadline_of_Billing: "",
-                    Date_Received: "",
-                    Gross: "",
-                    Currency: "",
-                    Exchange_Rate: "55",
-                    Peso_Value: "",
-                    DDM_Remarks: "",
-                    Licensing_Remarks: "",
-                    Date_billed: "",
-                    DSP: "",
-                    "SI#": "",
-                    "BI#": "",
-                    Division: "",
-                    Amount_Received: "",
-                    Bank_Charge: "",
-                    Total_Amount: "",
-                    Variance: "0.00",
-                  });
-                }}
-                className="bg-gray-500 text-white text-xs font-bold py-2 px-6 rounded"
+            <div style={{ flex: "25%", minWidth: "300px" }}>
+              <Section
+                title="Accounting Form"
+                columns="grid-cols-3"
+                disabled={isDisabled([ROLE.ACCOUNTING])}
               >
-                Cancel
+                <DateInput
+                  label="Date Received"
+                  name="Date_Received"
+                  value={formData.Date_Received}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="SI#"
+                  name="SI#"
+                  type="text"
+                  value={formData["SI#"] || ""}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="BI#"
+                  name="BI#"
+                  type="text"
+                  value={formData["BI#"] || ""}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="Amount Received"
+                  name="Amount_Received"
+                  type="text"
+                  value={formData.Amount_Received || ""}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                />
+                <Select
+                  label="Currency"
+                  name="Currency"
+                  value={formData.Currency}
+                  options={currencies}
+                  onChange={handleChange}
+                />
+                <Input
+                  label={`Bank Charge (${formData.Currency || "---"})`}
+                  name="Bank_Charge"
+                  type="text"
+                  value={formData.Bank_Charge || ""}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                />
+                <Input
+                  label="Total AMT"
+                  name="Total_Amount"
+                  type="text"
+                  value={formData.Total_Amount || ""}
+                  readOnly
+                />
+                <Input
+                  label="Exchange Rate"
+                  name="Exchange_Rate"
+                  type="number"
+                  step="0.0001"
+                  value={formData.Exchange_Rate || ""}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="Peso Value"
+                  name="Peso_Value"
+                  type="text"
+                  value={formData.Peso_Value || ""}
+                  readOnly
+                />
+              </Section>
+            </div>
+
+            <div style={{ flex: "20%", minWidth: "200px" }}>
+              <Section
+                title="Licensing Form"
+                columns="grid-cols-1"
+                disabled={isDisabled([ROLE.LICENSING])}
+              >
+                <DateInput
+                  label="Billing Date"
+                  name="Date_billed"
+                  value={formData.Date_billed}
+                  onChange={handleChange}
+                />
+                <Select
+                  label="Status"
+                  name="Status"
+                  value={formData.Status}
+                  options={statuses}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="Licensing Remarks"
+                  name="Licensing_Remarks"
+                  value={formData.Licensing_Remarks}
+                  onChange={handleChange}
+                />
+              </Section>
+            </div>
+
+            <div className="w-full flex gap-4 ">
+              <button
+                type="submit"
+                disabled={
+                  loading ||
+                  isDisabled([ROLE.LEGAL, ROLE.ACCOUNTING, ROLE.LICENSING])
+                }
+                className={`${editingId ? "bg-orange-600" : "bg-yellow-500 hover:bg-yellow-600"} text-white text-xs font-bold py-2 px-6 rounded disabled:bg-gray-400`}
+              >
+                {loading
+                  ? "Saving…"
+                  : editingId
+                    ? "Update DSP Record"
+                    : "Save DSP Record"}
               </button>
-            )}
-          </div>
-        </form>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingId(null);
+                    setFormData({
+                      Coverage_Start_Date: "",
+                      Coverage_End_Date: "",
+                      Coverage_Period: "",
+                      Data_Coverage: "",
+                      Society: "",
+                      Claim_Type: "",
+                      Email_Subject: "",
+                      Status: "Pending",
+                      Notification_date: "",
+                      Deadline_of_Billing: "",
+                      Date_Received: "",
+                      Gross: "",
+                      Currency: "",
+                      Exchange_Rate: "55",
+                      Peso_Value: "",
+                      DDM_Remarks: "",
+                      Licensing_Remarks: "",
+                      Date_billed: "",
+                      DSP: "",
+                      "SI#": "",
+                      "BI#": "",
+                      Division: "",
+                      Amount_Received: "",
+                      Bank_Charge: "",
+                      Total_Amount: "",
+                      Variance: "0.00",
+                      Origin: "",
+                      Licensor: "",
+                      Licensee: "",
+                      Territory: "",
+                    });
+                  }}
+                  className="bg-gray-500 text-white text-xs font-bold py-2 px-6 rounded"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        )}
 
         <h2 className="text-xl font-bold -mt-4 mb-4">
           Sources Revenue Records
@@ -1272,7 +1323,7 @@ export default function DSPPage() {
                   <th className="w-[5%] bg-blue-100 p-1">Source</th>
                   <th className="w-[6%] bg-blue-100 p-1">Coverage Period</th>
                   <th className="w-[6%] bg-blue-100 p-1">Data Coverage</th>
-                  <th className="w-[6%] bg-blue-100 p-1">Licensor</th>
+                  <th className="w-[6%] bg-blue-100 p-1">Society</th>
                   <th className="w-[7%] bg-blue-100 p-1">Claim</th>
                   <th className="w-[10%] bg-blue-100 p-1">Email Subject</th>
                   <th className="w-[5%] bg-blue-100 p-1">Notification Date</th>
@@ -1320,7 +1371,7 @@ export default function DSPPage() {
                     <td className="px-1 py-1 text-center truncate font-semibold">
                       {r.Data_Coverage}
                     </td>
-                    <td className="px-1 py-1 text-center">{r.Licensor}</td>
+                    <td className="px-1 py-1 text-center">{r.Society}</td>
                     <td className="px-1 py-1 text-center truncate">
                       {r.Claim_Type}
                     </td>
@@ -1435,4 +1486,3 @@ export default function DSPPage() {
     </div>
   );
 }
-
