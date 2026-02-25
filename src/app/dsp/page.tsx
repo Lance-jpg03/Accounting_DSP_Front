@@ -5,34 +5,29 @@ import { useRouter } from "next/navigation";
 import { getCookie } from "cookies-next";
 import Image from "next/image";
 import ForeignForm from "./foreignForm";
+import LocalForm from "./localForms";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
+import { LICENSEE_DATA } from "./licenseeList";
 
-const ROLE = {
-  LEGAL: 1,
-  ACCOUNTING: 2,
-  LICENSING: 3,
-};
 const generateCollectionId = (
   dspName: string,
-  coverageStartDate: string,
   existingRecords: DSPRecord[],
 ) => {
-  if (!dspName || !coverageStartDate) return "";
-
+  if (!dspName) return "";
+  
   const prefix = dspName.trim().substring(0, 3).toUpperCase().padEnd(3, "X");
-
-  const dateObj = new Date(coverageStartDate);
-  if (isNaN(dateObj.getTime())) return "";
-
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
   const datePart = `${year}${month}`;
 
   const matches = existingRecords.filter(
     (r) => r.DSP === dspName && r.Collection_ID?.includes(datePart),
   );
+  
   const nextNumber = matches.length + 1;
   const counter = String(nextNumber).padStart(5, "0");
+  
   return `${prefix}-${datePart}-${counter}`;
 };
 
@@ -87,6 +82,15 @@ interface DspData {
   Licensor: string;
   Licensee: string;
   Territory: string;
+  "%VAT": string;
+  Total_Gross_Amount?: string;
+  CWT: string;
+  Rights_Covered?: string;
+  Contract_Status?: string;
+  Covered_Service?: string;
+  Source_Type?: string;
+  Category?: string;
+  Establishment?: string;
 }
 
 interface DSPRecord {
@@ -119,6 +123,15 @@ interface DSPRecord {
   Licensor: string;
   Licensee: string;
   Territory: string;
+  "%VAT": string;
+  Total_Gross_Amount?: string;
+  CWT: string;
+  Rights_Covered?: string;
+  Contract_Status?: string;
+  Covered_Service?: string;
+  Source_Type?: string;
+  Category?: string;
+  Establishment?: string;
 }
 
 const DSP = [
@@ -138,8 +151,7 @@ const DSP = [
   "WhatsApp",
   "Concerts & Events",
   "Foreign",
-  "RME (MUSERK)",
-  "RME (MINT)",
+
 ];
 const claimTypes = [
   "Back-Claim",
@@ -153,6 +165,64 @@ const claimTypes = [
   "MG Balance",
   "Foreign",
   "Flat Fee GEC",
+];
+
+const Territories = [
+  "AR-SADAIC",
+  "AT-AKM",
+  "AU-APRA",
+  "BE-SABAM",
+  "BR-ABRAMUS",
+  "BR-UBC",
+  "CA-SOCAN",
+  "CA-SODRAC",
+  "CH-SUISA",
+  "CN-MCSC",
+  "CO-SAYCO",
+  "CR-ACAM",
+  "CU-ACDAM",
+  "CZ-OSA",
+  "DE-GEMA",
+  "DK-KODA",
+  "ES-SGAE",
+  "FR-SACEM",
+  "GB-PRS",
+  "GR-AEPI",
+  "GR-AUTODIA",
+  "HK-CASH",
+  "HR-CHA (HDS ZAMP)",
+  "HU-ARTISJUS",
+  "HU-HAFOX",
+  "ID-WAMI",
+  "IE-IMRO",
+  "IL-ACUM",
+  "IN-IPRS",
+  "IT-SIAE",
+  "JP-JASRAC",
+  "KR-KOMCA",
+  "LT-LATGA",
+  "MO-MACA",
+  "MX-SACM",
+  "MY-MACP",
+  "NL-BUMA/STEMRA",
+  "NO-TONO",
+  "PE-APDAYC",
+  "PH-FILSCAP",
+  "RO-UCMR-ADA",
+  "RU-RAO",
+  "SA-SAS",
+  "SE-STIM",
+  "SG-COMPASS",
+  "SK-SOZA",
+  "TH-MCT",
+  "TR-MESAM",
+  "TW-MUST",
+  "US-ASCAP",
+  "US-BMI",
+  "US-SESAC",
+  "VE-SACVEN",
+  "VN-VCPMC",
+  "ZA-SAMRO",
 ];
 const Society = [
   "FILSCAP",
@@ -237,7 +307,7 @@ function Input({ label, disabled, ...props }: any) {
       <input
         {...props}
         disabled={disabled}
-        className="p-2 border rounded bg-white disabled:bg-gray-200 disabled:text-gray-500 text-sm shadow-sm"
+        className="p-2 border rounded bg-white disabled:bg-gray-200 disabled: text-black text-sm shadow-sm"
       />
     </div>
   );
@@ -249,7 +319,7 @@ function Select({ label, options, disabled, ...props }: any) {
       <select
         {...props}
         disabled={disabled}
-        className="p-2 border rounded bg-white disabled:bg-gray-200 disabled:text-gray-500 text-sm shadow-sm"
+        className="p-2 border rounded bg-white disabled:bg-gray-200 disabled: text-black text-sm shadow-sm"
       >
         <option value="">-- SELECT --</option>
         {options.map((o: string) => (
@@ -315,6 +385,15 @@ export default function DSPPage() {
     Licensor: "",
     Licensee: "",
     Territory: "",
+    "%VAT": "",
+    Total_Gross_Amount: "",
+    CWT: "",
+    Rights_Covered: "",
+    Contract_Status: "",
+    Covered_Service: "",
+    Source_Type: "",
+    Category: "",
+    Establishment: "",
   });
 
   useEffect(() => {
@@ -347,9 +426,25 @@ export default function DSPPage() {
     const bankCharge =
       parseFloat(String(formData.Bank_Charge).replace(/,/g, "")) || 0;
 
-    const calculatedTotalAmountVal = amountReceived - bankCharge;
+    const vatInput =
+      parseFloat(String(formData["%VAT"]).replace(/,/g, "")) || 0;
+    const cwtInput = parseFloat(String(formData.CWT).replace(/,/g, "")) || 0;
+
+    const vatDecimal = vatInput / 100;
+    const cwtDecimal = cwtInput / 100;
+
+    const calculatedTotalGrossVal =
+      amountReceived + amountReceived * vatDecimal;
+
+    const calculatedTotalAmountVal =
+      calculatedTotalGrossVal - amountReceived * cwtDecimal - bankCharge;
+
     const calculatedPesoVal = calculatedTotalAmountVal * exchangeRate;
 
+    const calculatedTotalGross = formatDisplayNumber(
+      calculatedTotalGrossVal,
+      2,
+    );
     const calculatedTotalAmount = formatDisplayNumber(
       calculatedTotalAmountVal,
       2,
@@ -362,6 +457,10 @@ export default function DSPPage() {
 
     setFormData((prev) => {
       let updates: Partial<DspData> = {};
+
+      if (prev.Total_Gross_Amount !== calculatedTotalGross)
+        updates.Total_Gross_Amount = calculatedTotalGross;
+
       if (prev.Peso_Value !== calculatedPeso)
         updates.Peso_Value = calculatedPeso;
       if (prev.Total_Amount !== calculatedTotalAmount)
@@ -371,12 +470,13 @@ export default function DSPPage() {
 
       return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
     });
-  }, [formData.Exchange_Rate, formData.Amount_Received, formData.Bank_Charge]);
-
-  const isDisabled = (allowedRoles: number[]) => {
-    if (!mounted) return true;
-    return !allowedRoles.includes(roleFlag);
-  };
+  }, [
+    formData.Exchange_Rate,
+    formData.Amount_Received,
+    formData.Bank_Charge,
+    formData["%VAT"],
+    formData.CWT,
+  ]);
 
   useEffect(() => {
     setMounted(true);
@@ -470,16 +570,39 @@ export default function DSPPage() {
   ) => {
     const { name, value } = e.target;
 
-    if (name === "Date_billed") {
-      setFormData((p: DspData) => ({
-        ...p,
-        Date_billed: value,
-        Status: value !== "" ? "Billed" : p.Status,
-      }));
-      return;
-    }
+if (name === "Date_billed") {
+    setFormData((p: DspData) => ({
+      ...p,
+      Date_billed: value,
+      Status: value !== "" ? "For Billing" : (p.Status === "For Billing" || p.Status === "Billed" ? "Pending" : p.Status),
+    }));
+    return;
+  }
 
-    if (["Gross", "Amount_Received", "Bank_Charge"].includes(name)) {
+  if (name === "SI#" || name === "BI#") {
+    setFormData((p: DspData) => {
+      const updated = { ...p, [name]: value };
+      
+      const isBothFilled = updated["SI#"].trim() !== "" && updated["BI#"].trim() !== "";
+      
+      return {
+        ...updated,
+        Status: isBothFilled ? "Billed" : (p.Date_billed !== "" ? "For Billing" : p.Status)
+      };
+    });
+    return;
+  }
+
+    if (
+      [
+        "Gross",
+        "Amount_Received",
+        "Bank_Charge",
+        "%VAT",
+        "CWT",
+        "Exchange_Rate",
+      ].includes(name)
+    ) {
       setFormData((p: DspData) => ({ ...p, [name]: formatInputNumber(value) }));
       return;
     }
@@ -493,7 +616,19 @@ export default function DSPPage() {
       return;
     }
 
-    setFormData((p: DspData) => ({ ...p, [name]: value }));
+    setFormData((p: DspData) => {
+      let updated = { ...p, [name]: value };
+
+      if (name === "Licensee") {
+        const found = LICENSEE_DATA.find((item) => item.COMPANY === value);
+        if (found) {
+          updated.Category = found.CATEGORY;
+          updated.Establishment = found.ESTABLISHMENT;
+        }
+      }
+
+      return updated;
+    });
   };
 
   const handleEditClick = (record: DSPRecord) => {
@@ -543,91 +678,111 @@ export default function DSPPage() {
       Licensor: record.Licensor || "",
       Licensee: record.Licensee || "",
       Territory: record.Territory || "",
+      "%VAT": record["%VAT"] || "",
+      Total_Gross_Amount: record.Total_Gross_Amount || "",
+      CWT: record.CWT || "",
+      Rights_Covered: record.Rights_Covered || "",
+      Contract_Status: record.Contract_Status || "",
+      Covered_Service: record.Covered_Service || "",
+      Source_Type: record.Source_Type || "",
+      Category: record.Category || "",
+      Establishment: record.Establishment || "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setGeneratedId(null);
-    let dataToSubmit = {
-      ...formData,
-      Gross: formData.Gross.replace(/,/g, ""),
-      Amount_Received: formData.Amount_Received.replace(/,/g, ""),
-      Bank_Charge: formData.Bank_Charge.replace(/,/g, ""),
-      Total_Amount: formData.Total_Amount.replace(/,/g, ""),
-      Peso_Value: formData.Peso_Value.replace(/,/g, ""),
-      Variance: formData.Variance.replace(/,/g, ""),
-    };
-    if (!editingId) {
-      dataToSubmit.Collection_ID = generateCollectionId(
-        formData.DSP,
-        formData.Coverage_Start_Date,
-        records,
-      );
-    }
-    const url = editingId ? `${API_BASE}/dsp/${editingId}` : `${API_BASE}/dsp`;
-    const method = editingId ? "PUT" : "POST";
-    try {
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSubmit),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData?.error || "Failed to save DSP record");
-      }
-      const result = await response.json();
-      setGeneratedId(result.Collection_ID);
-      setEditingId(null);
-      setFormData({
-        Coverage_Start_Date: "",
-        Coverage_End_Date: "",
-        Coverage_Period: "",
-        Data_Coverage: "",
-        Society: "",
-        Claim_Type: "",
-        Email_Subject: "",
-        Status: "Pending",
-        Notification_date: "",
-        Deadline_of_Billing: "",
-        Date_Received: "",
-        Gross: "",
-        Currency: "",
-        Exchange_Rate: "55",
-        Peso_Value: "",
-        DDM_Remarks: "",
-        Licensing_Remarks: "",
-        Date_billed: "",
-        DSP: "",
-        "SI#": "",
-        "BI#": "",
-        Division: "",
-        Amount_Received: "",
-        Bank_Charge: "",
-        Total_Amount: "",
-        Variance: "0.00",
-        Origin: "",
-        Licensor: "",
-        Licensee: "",
-        Territory: "",
-      });
-      fetchDSP();
-    } catch (err: any) {
-      console.error("Save failed", err);
-      alert(`Save failed: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setGeneratedId(null);
+
+  let finalCollectionId = editingId;
+  if (!editingId) {
+    finalCollectionId = generateCollectionId(formData.DSP, records);
+  }
+
+  const dataToSubmit = {
+    ...formData,
+    Collection_ID: finalCollectionId,
+    Gross: formData.Gross.replace(/,/g, ""),
+    Amount_Received: formData.Amount_Received.replace(/,/g, ""),
+    Bank_Charge: formData.Bank_Charge.replace(/,/g, ""),
+    Total_Amount: formData.Total_Amount.replace(/,/g, ""),
+    Peso_Value: formData.Peso_Value.replace(/,/g, ""),
+    Variance: formData.Variance.replace(/,/g, ""),
+    Exchange_Rate: formData.Exchange_Rate.replace(/,/g, ""),
   };
 
-  const formatDateForDB = (dateStr: string) => {
-    if (!dateStr || dateStr.trim() === "") return null;
-    const date = new Date(dateStr);
-    return isNaN(date.getTime()) ? null : date.toISOString().split("T")[0];
-  };
+  const url = editingId ? `${API_BASE}/dsp/${editingId}` : `${API_BASE}/dsp`;
+  const method = editingId ? "PUT" : "POST";
+
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dataToSubmit),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData?.error || "Failed to save DSP record");
+    }
+
+    const result = await response.json();
+    setGeneratedId(result.Collection_ID);
+    setEditingId(null);
+
+    setFormData({
+      Coverage_Start_Date: "",
+      Coverage_End_Date: "",
+      Coverage_Period: "",
+      Society: "",
+      Claim_Type: "",
+      Email_Subject: "",
+      Status: "Pending",
+      Notification_date: "",
+      Deadline_of_Billing: "",
+      Date_Received: "",
+      Gross: "",
+      Currency: "",
+      Exchange_Rate: "55",
+      Peso_Value: "",
+      DDM_Remarks: "",
+      Licensing_Remarks: "",
+      Date_billed: "",
+      DSP: "",
+      "SI#": "",
+      "BI#": "",
+      Division: "",
+      Amount_Received: "",
+      Bank_Charge: "",
+      Total_Amount: "",
+      Variance: "0.00",
+      Data_Coverage: "",
+      Origin: "",
+      Licensor: "",
+      Licensee: "",
+      Territory: "",
+      "%VAT": "",
+      Total_Gross_Amount: "",
+      CWT: "",
+      Rights_Covered: "",
+      Contract_Status: "",
+      Covered_Service: "",
+      Source_Type: "",
+      Category: "",
+      Establishment: "",
+    });
+
+    fetchDSP();
+    alert("Record saved successfully!");
+  } catch (err: any) {
+    console.error("Save failed", err);
+    alert(`Save failed: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -695,7 +850,7 @@ export default function DSPPage() {
           else if (clean.includes("dsp")) headerMap[idx] = "DSP";
           else if (clean.includes("coverageperiod"))
             headerMap[idx] = "Coverage_Period";
-          else if (clean.includes("Society")) headerMap[idx] = "Society";
+          else if (clean.includes("licensor")) headerMap[idx] = "Licensor";
           else if (clean.includes("claimtype")) headerMap[idx] = "Claim_Type";
           else if (clean.includes("emailsubject"))
             headerMap[idx] = "Email_Subject";
@@ -749,7 +904,8 @@ export default function DSPPage() {
               const cleanNum = val.replace(/[^\d.-]/g, "");
               obj[key] =
                 cleanNum === "" || cleanNum === "-" ? 0 : parseFloat(cleanNum);
-            } else if (
+            }
+            else if (
               [
                 "Notification_date",
                 "Deadline_of_Billing",
@@ -771,16 +927,8 @@ export default function DSPPage() {
           });
 
           if (!obj.Collection_ID || obj.Collection_ID === "") {
-            // MODIFIED: Attempting to use start date from parsed coverage period if available
-            let startYearDate = "";
-            if (obj.Coverage_Period && obj.Coverage_Period.includes(" to ")) {
-              startYearDate = obj.Coverage_Period.split(" to ")[0];
-            } else {
-              startYearDate = new Date().toISOString(); // Fallback
-            }
             obj.Collection_ID = generateCollectionId(
-              obj.DSP || "",
-              startYearDate,
+              obj.DSP || "UNK",
               localExistingRecords,
             );
           }
@@ -858,12 +1006,10 @@ export default function DSPPage() {
       const societyDeducted = gross - amountReceived;
       const percentDeducted = gross !== 0 ? societyDeducted / gross : 0;
 
-      // START: NEW LOGIC FOR FOREIGN SOURCE VARIANCE
       let varianceValue = Number(r.Variance) || 0;
       if (r.DSP === "Foreign") {
         varianceValue = societyDeducted - amountReceived;
       }
-      // END: NEW LOGIC FOR FOREIGN SOURCE VARIANCE
 
       return [
         r.Collection_ID ?? "",
@@ -890,7 +1036,7 @@ export default function DSPPage() {
         r.Date_billed ?? "",
         r.Status ?? "",
         r.Licensing_Remarks ?? "",
-        formatDisplayNumber(varianceValue, 2), // Updated to use the variable
+        formatDisplayNumber(varianceValue, 2),
         societyDeducted.toFixed(2),
         (percentDeducted * 100).toFixed(2) + "%",
       ];
@@ -929,7 +1075,6 @@ export default function DSPPage() {
         </div>
       </div>
       <div className="p-4 space-y-8">
-        {/* CONDITIONAL FORM RENDERING */}
         {formData.Origin === "Foreign" ? (
           <ForeignForm
             formData={formData}
@@ -946,18 +1091,34 @@ export default function DSPPage() {
             Select={Select}
             Input={Input}
             DateInput={DateInput}
+            territories={Territories}
+          />
+        ) : formData.Origin === "Local" ? (
+          <LocalForm
+            formData={formData}
+            setFormData={setFormData}
+            handleChange={handleChange}
+            handleSubmit={handleSubmit}
+            loading={loading}
+            editingId={editingId}
+            setEditingId={setEditingId}
+            DSP={DSP}
+            Society={Society}
+            claimTypes={claimTypes}
+            currencies={currencies}
+            Select={Select}
+            Input={Input}
+            DateInput={DateInput}
           />
         ) : (
-          /* ORIGINAL LOCAL FORM START */
           <form
             onSubmit={handleSubmit}
             className="flex flex-wrap gap-4 bg-[#FFF9E5] p-4 items-stretch shadow-lg rounded-sm"
           >
             <div style={{ flex: "40%", minWidth: "300px" }}>
               <Section
-                title="DDD/Legal Form"
+                title="Choose Origin"
                 columns="grid-cols-1 md:grid-cols-5"
-                disabled={isDisabled([ROLE.LEGAL])}
               >
                 <Select
                   label="Origin"
@@ -966,257 +1127,7 @@ export default function DSPPage() {
                   options={["Local", "Foreign"]}
                   onChange={handleChange}
                 />
-                <Select
-                  label="Division"
-                  name="Division"
-                  value={formData.Division}
-                  options={["Digital", "Non-Digital"]}
-                  onChange={handleChange}
-                />
-                <Select
-                  label="Source"
-                  name="DSP"
-                  value={formData.DSP}
-                  options={DSP}
-                  onChange={handleChange}
-                />
-                <DateInput
-                  label="Start Date"
-                  name="Coverage_Start_Date"
-                  value={formData.Coverage_Start_Date}
-                  onChange={handleChange}
-                />
-                <DateInput
-                  label="End Date"
-                  name="Coverage_End_Date"
-                  value={formData.Coverage_End_Date}
-                  onChange={handleChange}
-                />
-                <Input
-                  label="Data Coverage"
-                  name="Data_Coverage"
-                  value={formData.Data_Coverage}
-                  readOnly
-                  placeholder="2026(Q1)-2027(Q2)"
-                />
-                <Select
-                  label="Society"
-                  name="Society"
-                  value={formData.Society}
-                  options={Society}
-                  onChange={handleChange}
-                />
-                <Select
-                  label="Claim Type"
-                  name="Claim_Type"
-                  value={formData.Claim_Type}
-                  options={claimTypes}
-                  onChange={handleChange}
-                />
-                <Input
-                  label="Email Subject"
-                  name="Email_Subject"
-                  value={formData.Email_Subject}
-                  onChange={handleChange}
-                />
-                <DateInput
-                  label="Notification Date"
-                  name="Notification_date"
-                  value={formData.Notification_date}
-                  onChange={handleChange}
-                />
-                <DateInput
-                  label="Deadline of Billing"
-                  name="Deadline_of_Billing"
-                  value={formData.Deadline_of_Billing}
-                  onChange={handleChange}
-                />
-                <Input
-                  label="Gross"
-                  name="Gross"
-                  type="text"
-                  value={formData.Gross || ""}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                />
-                <Select
-                  label="Currency"
-                  name="Currency"
-                  value={formData.Currency}
-                  options={currencies}
-                  onChange={handleChange}
-                />
-                <div className="w-[211%]">
-                  <Input
-                    label="DDM Remarks"
-                    name="DDM_Remarks"
-                    value={formData.DDM_Remarks}
-                    onChange={handleChange}
-                  />
-                </div>
               </Section>
-            </div>
-
-            <div style={{ flex: "25%", minWidth: "300px" }}>
-              <Section
-                title="Accounting Form"
-                columns="grid-cols-3"
-                disabled={isDisabled([ROLE.ACCOUNTING])}
-              >
-                <DateInput
-                  label="Date Received"
-                  name="Date_Received"
-                  value={formData.Date_Received}
-                  onChange={handleChange}
-                />
-                <Input
-                  label="SI#"
-                  name="SI#"
-                  type="text"
-                  value={formData["SI#"] || ""}
-                  onChange={handleChange}
-                />
-                <Input
-                  label="BI#"
-                  name="BI#"
-                  type="text"
-                  value={formData["BI#"] || ""}
-                  onChange={handleChange}
-                />
-                <Input
-                  label="Amount Received"
-                  name="Amount_Received"
-                  type="text"
-                  value={formData.Amount_Received || ""}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                />
-                <Select
-                  label="Currency"
-                  name="Currency"
-                  value={formData.Currency}
-                  options={currencies}
-                  onChange={handleChange}
-                />
-                <Input
-                  label={`Bank Charge (${formData.Currency || "---"})`}
-                  name="Bank_Charge"
-                  type="text"
-                  value={formData.Bank_Charge || ""}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                />
-                <Input
-                  label="Total AMT"
-                  name="Total_Amount"
-                  type="text"
-                  value={formData.Total_Amount || ""}
-                  readOnly
-                />
-                <Input
-                  label="Exchange Rate"
-                  name="Exchange_Rate"
-                  type="number"
-                  step="0.0001"
-                  value={formData.Exchange_Rate || ""}
-                  onChange={handleChange}
-                />
-                <Input
-                  label="Peso Value"
-                  name="Peso_Value"
-                  type="text"
-                  value={formData.Peso_Value || ""}
-                  readOnly
-                />
-              </Section>
-            </div>
-
-            <div style={{ flex: "20%", minWidth: "200px" }}>
-              <Section
-                title="Licensing Form"
-                columns="grid-cols-1"
-                disabled={isDisabled([ROLE.LICENSING])}
-              >
-                <DateInput
-                  label="Billing Date"
-                  name="Date_billed"
-                  value={formData.Date_billed}
-                  onChange={handleChange}
-                />
-                <Select
-                  label="Status"
-                  name="Status"
-                  value={formData.Status}
-                  options={statuses}
-                  onChange={handleChange}
-                />
-                <Input
-                  label="Licensing Remarks"
-                  name="Licensing_Remarks"
-                  value={formData.Licensing_Remarks}
-                  onChange={handleChange}
-                />
-              </Section>
-            </div>
-
-            <div className="w-full flex gap-4 ">
-              <button
-                type="submit"
-                disabled={
-                  loading ||
-                  isDisabled([ROLE.LEGAL, ROLE.ACCOUNTING, ROLE.LICENSING])
-                }
-                className={`${editingId ? "bg-orange-600" : "bg-yellow-500 hover:bg-yellow-600"} text-white text-xs font-bold py-2 px-6 rounded disabled:bg-gray-400`}
-              >
-                {loading
-                  ? "Saving…"
-                  : editingId
-                    ? "Update DSP Record"
-                    : "Save DSP Record"}
-              </button>
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingId(null);
-                    setFormData({
-                      Coverage_Start_Date: "",
-                      Coverage_End_Date: "",
-                      Coverage_Period: "",
-                      Data_Coverage: "",
-                      Society: "",
-                      Claim_Type: "",
-                      Email_Subject: "",
-                      Status: "Pending",
-                      Notification_date: "",
-                      Deadline_of_Billing: "",
-                      Date_Received: "",
-                      Gross: "",
-                      Currency: "",
-                      Exchange_Rate: "55",
-                      Peso_Value: "",
-                      DDM_Remarks: "",
-                      Licensing_Remarks: "",
-                      Date_billed: "",
-                      DSP: "",
-                      "SI#": "",
-                      "BI#": "",
-                      Division: "",
-                      Amount_Received: "",
-                      Bank_Charge: "",
-                      Total_Amount: "",
-                      Variance: "0.00",
-                      Origin: "",
-                      Licensor: "",
-                      Licensee: "",
-                      Territory: "",
-                    });
-                  }}
-                  className="bg-gray-500 text-white text-xs font-bold py-2 px-6 rounded"
-                >
-                  Cancel
-                </button>
-              )}
             </div>
           </form>
         )}
@@ -1228,7 +1139,7 @@ export default function DSPPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="flex items-end gap-2 flex-wrap">
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold block mb-1 uppercase text-gray-500">
+              <label className="text-[10px] font-bold block mb-1 uppercase  text-black">
                 Search Email Subject
               </label>
               <input
@@ -1240,7 +1151,7 @@ export default function DSPPage() {
               />
             </div>
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold block mb-1 uppercase text-gray-500">
+              <label className="text-[10px] font-bold block mb-1 uppercase  text-black">
                 Filter by DSP
               </label>
               <select
@@ -1257,7 +1168,7 @@ export default function DSPPage() {
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold block mb-1 uppercase text-gray-500">
+              <label className="text-[10px] font-bold block mb-1 uppercase  text-black">
                 Sort Billing Date
               </label>
               <select
