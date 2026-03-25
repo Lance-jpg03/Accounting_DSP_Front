@@ -108,8 +108,7 @@ const SOCIETY_FULL_NAMES: Record<string, string> = {
   SGAE: "Sociedad General de Autores y Editores",
   SIAE: "Società Italiana degli Autori ed Editori",
   SOCAN: "Society of Composers, Authors and Music Publishers of Canada",
-  SODRAC:
-    "Society for Reproduction Rights of Authors, Composers and Publishers in Canada",
+  SODRAC: "Society for Reproduction Rights of Authors, Composers and Publishers in Canada",
   SOZA: "Slovak Performing and Mechanical Rights Society",
   STIM: "Swedish Performing Rights Society",
   SUISA: "Swiss Society for the Rights of Authors of Musical Works",
@@ -129,22 +128,19 @@ export default function ForeignForm({
   loading,
   editingId,
   setEditingId,
-  DSP,
   Society,
-  claimTypes,
+  handleDelete,
   currencies,
   Select,
   Input,
   DateInput,
-  territories,
 }: any) {
-  // Force state to Foreign when this form is active
   useEffect(() => {
-    if (formData.Origin === "Foreign") {
+    if (formData.Origin === "Multi-Territorial") {
       setFormData((prev: any) => ({
         ...prev,
         DSP: "Foreign",
-        Division: "Digital",
+        Division: "Non-Digital",
       }));
     }
   }, [formData.Origin, setFormData]);
@@ -164,44 +160,27 @@ export default function ForeignForm({
     }
   }, [formData.Society, setFormData]);
 
-  const handleClear = () => {
-    setEditingId(null);
-    setFormData({
-      Origin: "Foreign",
-      Division: "Digital",
-      DSP: "Foreign",
-      Coverage_Start_Date: "",
-      Coverage_End_Date: "",
-      Coverage_Period: "",
-      Society: "",
-      Claim_Type: "",
-      Email_Subject: "",
-      Status: "Pending",
-      Notification_date: "",
-      Deadline_of_Billing: "",
-      Date_Received: "",
-      Gross: "",
-      Currency: "USD",
-      Exchange_Rate: "55",
-      Peso_Value: "",
-      DDM_Remarks: "",
-      Licensing_Remarks: "",
-      Date_billed: "",
-      "SI#": "",
-      "BI#": "",
-      Amount_Received: "",
-      Bank_Charge: "0",
-      Total_Amount: "",
-      Variance: "0.00",
-      Data_Coverage: "",
-      Licensor: "FILSCAP",
-      Licensee: "FILSCAP",
-      Territory: "",
-      "%VAT": "0",
-      Total_Gross_Amount: "",
-      CWT: "0",
-    });
+  // FIX: Validation to clear Society if it doesn't match RME requirements
+  useEffect(() => {
+    const rmeAllowed = ["MINT", "MUSERK", "ESMAA"];
+    if (
+      formData.Licensor === "RME" &&
+      formData.Society &&
+      !rmeAllowed.includes(formData.Society)
+    ) {
+      setFormData((prev: any) => ({ ...prev, Society: "" }));
+    }
+  }, [formData.Licensor, setFormData]);
+
+  // FIX: Logic to filter society list for the dropdown
+  const getFilteredSocieties = () => {
+    if (formData.Licensor === "RME") {
+      return ["MINT", "MUSERK", "ESMAA"];
+    }
+    return Society;
   };
+
+  const isLockedAfterSave = !!editingId;
 
   return (
     <form
@@ -213,10 +192,9 @@ export default function ForeignForm({
           label="Origin"
           name="Origin"
           value={formData.Origin}
-          options={["Local", "Foreign"]}
+          options={["Mono-territorial", "Multi-Territorial"]}
           onChange={handleChange}
         />
-
         <Input
           label="Division"
           name="Division"
@@ -224,7 +202,6 @@ export default function ForeignForm({
           onChange={handleChange}
           disabled={true}
         />
-
         <Select
           label="Source"
           name="DSP"
@@ -232,7 +209,6 @@ export default function ForeignForm({
           options={["Society", "Non-Society"]}
           onChange={handleChange}
         />
-
         <Select
           label="Licensor"
           name="Licensor"
@@ -240,24 +216,21 @@ export default function ForeignForm({
           options={["RME", "Direct License", "Society"]}
           onChange={handleChange}
         />
-
         <Select
           label="Society"
           name="Society"
-          options={Society}
+          options={getFilteredSocieties()}
           value={formData.Society}
           onChange={handleChange}
-          placeholder="FILSCAP"
+          disabled={formData.Licensor === "Direct License"}
         />
-
         <Input
           label="Licensee"
           name="Licensee"
           value={formData.Licensee}
           onChange={handleChange}
-          disabled={true}
+          disabled={formData.Licensor !== "Direct License"}
         />
-
         <Input
           label="Territory"
           name="Territory"
@@ -269,10 +242,9 @@ export default function ForeignForm({
           label="Rights Covered"
           name="Rights_Covered"
           value={formData.Rights_Covered}
-          options={["PR", "MR"]}
+          options={["PR", "MR", "PR & MR"]}
           onChange={handleChange}
         />
-
         <DateInput
           label="Notification Date"
           name="Notification_date"
@@ -297,9 +269,9 @@ export default function ForeignForm({
       <div className="flex flex-wrap gap-4">
         <div
           style={{ flex: "200px" }}
-          className="border-2 border-yellow-400/30 rounded-lg p-1 bg-white/40"
+          className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
         >
-          <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30 ">
+          <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30">
             Period Covered
           </h3>
           <div className="grid grid-cols-3 gap-3">
@@ -326,9 +298,9 @@ export default function ForeignForm({
 
         <div
           style={{ flex: "550px" }}
-          className="border-2 border-yellow-400/30 rounded-lg p-1 bg-white/40"
+          className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
         >
-          <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30 ">
+          <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30">
             Payment Information
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-9 gap-3">
@@ -358,7 +330,7 @@ export default function ForeignForm({
               onChange={handleChange}
             />
             <Input
-              label="Total Gross "
+              label="Total Gross"
               name="Total_Gross_Amount"
               value={formData.Total_Gross_Amount}
               disabled={true}
@@ -406,20 +378,29 @@ export default function ForeignForm({
               name="SI#"
               value={formData["SI#"]}
               onChange={handleChange}
-              disabled={!formData.Date_billed || formData.Date_billed === ""}
+              disabled={
+                !formData.Date_billed ||
+                formData.Date_billed === "" ||
+                isLockedAfterSave
+              }
             />
             <Input
               label="BI#"
               name="BI#"
               value={formData["BI#"]}
               onChange={handleChange}
-              disabled={!formData.Date_billed || formData.Date_billed === ""}
+              disabled={
+                !formData.Date_billed ||
+                formData.Date_billed === "" ||
+                isLockedAfterSave
+              }
             />
             <Input
               label="Remarks"
               name="Licensing_Remarks"
               value={formData.Licensing_Remarks}
               onChange={handleChange}
+              disabled={isLockedAfterSave}
             />
             <Input
               label="Variance"
@@ -439,13 +420,16 @@ export default function ForeignForm({
           </div>
 
           <div className="flex flex-col gap-2 min-w-[200px]">
-            <button
-              type="button"
-              onClick={handleClear}
-              className="w-full bg-red-500 hover:bg-red-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400 cursor-pointer"
-            >
-              Delete
-            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={() => handleDelete(editingId)}
+                className="w-full bg-red-500 hover:bg-red-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400 cursor-pointer"
+              >
+                Delete Row
+              </button>
+            )}
+
             <button
               type="submit"
               disabled={loading}

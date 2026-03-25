@@ -6,15 +6,16 @@ import { getCookie } from "cookies-next";
 import Image from "next/image";
 import ForeignForm from "./foreignForm";
 import LocalForm from "./localForms";
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
 import { LICENSEE_DATA } from "./licenseeList";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
 
 const generateCollectionId = (
   dspName: string,
   existingRecords: DSPRecord[],
 ) => {
   if (!dspName) return "";
-  
+
   const prefix = dspName.trim().substring(0, 3).toUpperCase().padEnd(3, "X");
   const now = new Date();
   const year = now.getFullYear();
@@ -24,10 +25,10 @@ const generateCollectionId = (
   const matches = existingRecords.filter(
     (r) => r.DSP === dspName && r.Collection_ID?.includes(datePart),
   );
-  
+
   const nextNumber = matches.length + 1;
   const counter = String(nextNumber).padStart(5, "0");
-  
+
   return `${prefix}-${datePart}-${counter}`;
 };
 
@@ -149,9 +150,6 @@ const DSP = [
   "Netflix",
   "Meta",
   "WhatsApp",
-  "Concerts & Events",
-  "Foreign",
-
 ];
 const claimTypes = [
   "Back-Claim",
@@ -167,63 +165,6 @@ const claimTypes = [
   "Flat Fee GEC",
 ];
 
-const Territories = [
-  "AR-SADAIC",
-  "AT-AKM",
-  "AU-APRA",
-  "BE-SABAM",
-  "BR-ABRAMUS",
-  "BR-UBC",
-  "CA-SOCAN",
-  "CA-SODRAC",
-  "CH-SUISA",
-  "CN-MCSC",
-  "CO-SAYCO",
-  "CR-ACAM",
-  "CU-ACDAM",
-  "CZ-OSA",
-  "DE-GEMA",
-  "DK-KODA",
-  "ES-SGAE",
-  "FR-SACEM",
-  "GB-PRS",
-  "GR-AEPI",
-  "GR-AUTODIA",
-  "HK-CASH",
-  "HR-CHA (HDS ZAMP)",
-  "HU-ARTISJUS",
-  "HU-HAFOX",
-  "ID-WAMI",
-  "IE-IMRO",
-  "IL-ACUM",
-  "IN-IPRS",
-  "IT-SIAE",
-  "JP-JASRAC",
-  "KR-KOMCA",
-  "LT-LATGA",
-  "MO-MACA",
-  "MX-SACM",
-  "MY-MACP",
-  "NL-BUMA/STEMRA",
-  "NO-TONO",
-  "PE-APDAYC",
-  "PH-FILSCAP",
-  "RO-UCMR-ADA",
-  "RU-RAO",
-  "SA-SAS",
-  "SE-STIM",
-  "SG-COMPASS",
-  "SK-SOZA",
-  "TH-MCT",
-  "TR-MESAM",
-  "TW-MUST",
-  "US-ASCAP",
-  "US-BMI",
-  "US-SESAC",
-  "VE-SACVEN",
-  "VN-VCPMC",
-  "ZA-SAMRO",
-];
 const Society = [
   "FILSCAP",
   "CASH",
@@ -283,7 +224,7 @@ function Section({
   title,
   children,
   disabled = false,
-  columns = "grid-cols-1 md:grid-cols-2",
+  columns = "grid-cols-1",
 }: any) {
   return (
     <div
@@ -307,7 +248,7 @@ function Input({ label, disabled, ...props }: any) {
       <input
         {...props}
         disabled={disabled}
-        className="p-2 border rounded bg-white disabled:bg-gray-200 disabled: text-black text-sm shadow-sm"
+        className="p-2 border rounded bg-white disabled:bg-gray-200 disabled:text-gray-500 text-black text-sm shadow-sm"
       />
     </div>
   );
@@ -319,7 +260,7 @@ function Select({ label, options, disabled, ...props }: any) {
       <select
         {...props}
         disabled={disabled}
-        className="p-2 border rounded bg-white disabled:bg-gray-200 disabled: text-black text-sm shadow-sm"
+        className="p-2 border rounded bg-white disabled:bg-gray-200 disabled:text-gray-500 text-black text-sm shadow-sm"
       >
         <option value="">-- SELECT --</option>
         {options.map((o: string) => (
@@ -354,7 +295,7 @@ export default function DSPPage() {
 
   const ROWS_PER_PAGE = 10;
 
-  const [formData, setFormData] = useState<DspData>({
+  const initialFormState: DspData = {
     Coverage_Start_Date: "",
     Coverage_End_Date: "",
     Coverage_Period: "",
@@ -394,7 +335,9 @@ export default function DSPPage() {
     Source_Type: "",
     Category: "",
     Establishment: "",
-  });
+  };
+
+  const [formData, setFormData] = useState<DspData>(initialFormState);
 
   useEffect(() => {
     if (formData.Coverage_Start_Date && formData.Coverage_End_Date) {
@@ -425,6 +368,8 @@ export default function DSPPage() {
       parseFloat(String(formData.Amount_Received).replace(/,/g, "")) || 0;
     const bankCharge =
       parseFloat(String(formData.Bank_Charge).replace(/,/g, "")) || 0;
+    const grossAmount =
+      parseFloat(String(formData.Gross).replace(/,/g, "")) || 0;
 
     const vatInput =
       parseFloat(String(formData["%VAT"]).replace(/,/g, "")) || 0;
@@ -433,8 +378,7 @@ export default function DSPPage() {
     const vatDecimal = vatInput / 100;
     const cwtDecimal = cwtInput / 100;
 
-    const calculatedTotalGrossVal =
-      amountReceived + amountReceived * vatDecimal;
+    const calculatedTotalGrossVal = grossAmount + grossAmount * vatDecimal;
 
     const calculatedTotalAmountVal =
       calculatedTotalGrossVal - amountReceived * cwtDecimal - bankCharge;
@@ -471,6 +415,7 @@ export default function DSPPage() {
       return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
     });
   }, [
+    formData.Gross,
     formData.Exchange_Rate,
     formData.Amount_Received,
     formData.Bank_Charge,
@@ -570,28 +515,46 @@ export default function DSPPage() {
   ) => {
     const { name, value } = e.target;
 
-if (name === "Date_billed") {
-    setFormData((p: DspData) => ({
-      ...p,
-      Date_billed: value,
-      Status: value !== "" ? "For Billing" : (p.Status === "For Billing" || p.Status === "Billed" ? "Pending" : p.Status),
-    }));
-    return;
-  }
+    if (name === "Origin") {
+      setFormData({
+        ...initialFormState,
+        Origin: value,
+      });
+      setEditingId(null);
+      return;
+    }
 
-  if (name === "SI#" || name === "BI#") {
-    setFormData((p: DspData) => {
-      const updated = { ...p, [name]: value };
-      
-      const isBothFilled = updated["SI#"].trim() !== "" && updated["BI#"].trim() !== "";
-      
-      return {
-        ...updated,
-        Status: isBothFilled ? "Billed" : (p.Date_billed !== "" ? "For Billing" : p.Status)
-      };
-    });
-    return;
-  }
+    if (name === "Date_billed") {
+      setFormData((p: DspData) => ({
+        ...p,
+        Date_billed: value,
+        Status:
+          value !== ""
+            ? "For Billing"
+            : p.Status === "For Billing" || p.Status === "Billed"
+              ? "Pending"
+              : p.Status,
+      }));
+      return;
+    }
+
+    if (name === "SI#" || name === "BI#") {
+      setFormData((p: DspData) => {
+        const updated = { ...p, [name]: value };
+        const isBothFilled =
+          updated["SI#"].trim() !== "" && updated["BI#"].trim() !== "";
+
+        return {
+          ...updated,
+          Status: isBothFilled
+            ? "Billed"
+            : p.Date_billed !== ""
+              ? "For Billing"
+              : "Pending",
+        };
+      });
+      return;
+    }
 
     if (
       [
@@ -691,98 +654,58 @@ if (name === "Date_billed") {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setGeneratedId(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setGeneratedId(null);
 
-  let finalCollectionId = editingId;
-  if (!editingId) {
-    finalCollectionId = generateCollectionId(formData.DSP, records);
-  }
-
-  const dataToSubmit = {
-    ...formData,
-    Collection_ID: finalCollectionId,
-    Gross: formData.Gross.replace(/,/g, ""),
-    Amount_Received: formData.Amount_Received.replace(/,/g, ""),
-    Bank_Charge: formData.Bank_Charge.replace(/,/g, ""),
-    Total_Amount: formData.Total_Amount.replace(/,/g, ""),
-    Peso_Value: formData.Peso_Value.replace(/,/g, ""),
-    Variance: formData.Variance.replace(/,/g, ""),
-    Exchange_Rate: formData.Exchange_Rate.replace(/,/g, ""),
-  };
-
-  const url = editingId ? `${API_BASE}/dsp/${editingId}` : `${API_BASE}/dsp`;
-  const method = editingId ? "PUT" : "POST";
-
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(dataToSubmit),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData?.error || "Failed to save DSP record");
+    let finalCollectionId = editingId;
+    if (!editingId) {
+      finalCollectionId = generateCollectionId(formData.DSP, records);
     }
 
-    const result = await response.json();
-    setGeneratedId(result.Collection_ID);
-    setEditingId(null);
+    const dataToSubmit = {
+      ...formData,
+      Collection_ID: finalCollectionId,
+      Gross: formData.Gross.replace(/,/g, ""),
+      Amount_Received: formData.Amount_Received.replace(/,/g, ""),
+      Bank_Charge: formData.Bank_Charge.replace(/,/g, ""),
+      Total_Amount: formData.Total_Amount.replace(/,/g, ""),
+      Peso_Value: formData.Peso_Value.replace(/,/g, ""),
+      Variance: formData.Variance.replace(/,/g, ""),
+      Exchange_Rate: formData.Exchange_Rate.replace(/,/g, ""),
+    };
 
-    setFormData({
-      Coverage_Start_Date: "",
-      Coverage_End_Date: "",
-      Coverage_Period: "",
-      Society: "",
-      Claim_Type: "",
-      Email_Subject: "",
-      Status: "Pending",
-      Notification_date: "",
-      Deadline_of_Billing: "",
-      Date_Received: "",
-      Gross: "",
-      Currency: "",
-      Exchange_Rate: "55",
-      Peso_Value: "",
-      DDM_Remarks: "",
-      Licensing_Remarks: "",
-      Date_billed: "",
-      DSP: "",
-      "SI#": "",
-      "BI#": "",
-      Division: "",
-      Amount_Received: "",
-      Bank_Charge: "",
-      Total_Amount: "",
-      Variance: "0.00",
-      Data_Coverage: "",
-      Origin: "",
-      Licensor: "",
-      Licensee: "",
-      Territory: "",
-      "%VAT": "",
-      Total_Gross_Amount: "",
-      CWT: "",
-      Rights_Covered: "",
-      Contract_Status: "",
-      Covered_Service: "",
-      Source_Type: "",
-      Category: "",
-      Establishment: "",
-    });
+    const url = editingId ? `${API_BASE}/dsp/${editingId}` : `${API_BASE}/dsp`;
+    const method = editingId ? "PUT" : "POST";
 
-    fetchDSP();
-    alert("Record saved successfully!");
-  } catch (err: any) {
-    console.error("Save failed", err);
-    alert(`Save failed: ${err.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dataToSubmit),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.error || "Failed to save DSP record");
+      }
+
+      const result = await response.json();
+      setGeneratedId(result.Collection_ID);
+      setEditingId(null);
+
+      setFormData(initialFormState);
+
+      fetchDSP();
+      alert("Record saved successfully!");
+    } catch (err: any) {
+      console.error("Save failed", err);
+      alert(`Save failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -844,26 +767,52 @@ if (name === "Date_billed") {
 
         const headerMap: Record<number, string> = {};
         rawHeaders.forEach((h, idx) => {
-          const clean = h.toLowerCase().replace(/[^a-z0-9#]/g, "");
-          if (clean.includes("collectionid")) headerMap[idx] = "Collection_ID";
+          const clean = h.toLowerCase().replace(/[^a-z0-9#%]/g, "");
+
+          if (clean === "society")
+            headerMap[idx] = "Society"; // Exact match priority
+          else if (clean.includes("collectionid"))
+            headerMap[idx] = "Collection_ID";
+          else if (clean.includes("origin")) headerMap[idx] = "Origin";
           else if (clean.includes("division")) headerMap[idx] = "Division";
           else if (clean.includes("dsp")) headerMap[idx] = "DSP";
+          else if (clean.includes("licensee")) headerMap[idx] = "Licensee";
+          else if (clean.includes("licensor")) headerMap[idx] = "Licensor";
+          else if (clean.includes("territory")) headerMap[idx] = "Territory";
+          else if (clean.includes("claimtype")) headerMap[idx] = "Claim_Type";
+          else if (clean.includes("rights")) headerMap[idx] = "Rights_Covered";
+          else if (clean.includes("contract"))
+            headerMap[idx] = "Contract_Status";
+          else if (clean.includes("service"))
+            headerMap[idx] = "Covered_Service";
+          else if (clean.includes("sourcetype")) headerMap[idx] = "Source_Type";
+          else if (clean.includes("category")) headerMap[idx] = "Category";
+          else if (clean.includes("establishment"))
+            headerMap[idx] = "Establishment";
           else if (clean.includes("coverageperiod"))
             headerMap[idx] = "Coverage_Period";
-          else if (clean.includes("licensor")) headerMap[idx] = "Licensor";
-          else if (clean.includes("claimtype")) headerMap[idx] = "Claim_Type";
-          else if (clean.includes("emailsubject"))
-            headerMap[idx] = "Email_Subject";
+          else if (clean.includes("coveragestart"))
+            headerMap[idx] = "Coverage_Start_Date";
+          else if (clean.includes("coverageend"))
+            headerMap[idx] = "Coverage_End_Date";
+          else if (clean.includes("datacoverage"))
+            headerMap[idx] = "Data_Coverage";
           else if (clean.includes("notificationdate"))
             headerMap[idx] = "Notification_date";
           else if (clean.includes("deadlineofbilling"))
             headerMap[idx] = "Deadline_of_Billing";
-          else if (clean === "gross") headerMap[idx] = "Gross";
-          else if (clean === "currency") headerMap[idx] = "Currency";
           else if (clean.includes("datereceived"))
             headerMap[idx] = "Date_Received";
-          else if (clean.includes("si#")) headerMap[idx] = "SI#";
-          else if (clean.includes("bi#")) headerMap[idx] = "BI#";
+          else if (
+            clean.includes("billingdate") ||
+            clean.includes("datebilled")
+          )
+            headerMap[idx] = "Date_billed";
+          else if (clean === "gross") headerMap[idx] = "Gross";
+          else if (clean.includes("vat")) headerMap[idx] = "%VAT";
+          else if (clean.includes("totalgross"))
+            headerMap[idx] = "Total_Gross_Amount";
+          else if (clean.includes("cwt")) headerMap[idx] = "CWT";
           else if (clean.includes("amountreceived"))
             headerMap[idx] = "Amount_Received";
           else if (clean.includes("bankcharge")) headerMap[idx] = "Bank_Charge";
@@ -872,12 +821,15 @@ if (name === "Date_billed") {
           else if (clean.includes("exchangerate"))
             headerMap[idx] = "Exchange_Rate";
           else if (clean.includes("pesovalue")) headerMap[idx] = "Peso_Value";
-          else if (clean.includes("billingdate"))
-            headerMap[idx] = "Date_billed";
+          else if (clean.includes("variance")) headerMap[idx] = "Variance";
+          else if (clean === "currency") headerMap[idx] = "Currency";
+          else if (clean.includes("si#")) headerMap[idx] = "SI#";
+          else if (clean.includes("bi#")) headerMap[idx] = "BI#";
           else if (clean === "status") headerMap[idx] = "Status";
+          else if (clean.includes("emailsubject"))
+            headerMap[idx] = "Email_Subject";
           else if (clean.includes("licensingremarks"))
             headerMap[idx] = "Licensing_Remarks";
-          else if (clean.includes("variance")) headerMap[idx] = "Variance";
           else if (clean.includes("ddm") || clean.includes("legal"))
             headerMap[idx] = "DDM_Remarks";
         });
@@ -899,18 +851,24 @@ if (name === "Date_billed") {
                 "Exchange_Rate",
                 "Peso_Value",
                 "Variance",
-              ].includes(key)
+                "%VAT",
+                "Total_Gross_Amount",
+                "CWT",
+              ].includes(key) &&
+              key !== "Society"
             ) {
               const cleanNum = val.replace(/[^\d.-]/g, "");
-              obj[key] =
-                cleanNum === "" || cleanNum === "-" ? 0 : parseFloat(cleanNum);
+              obj[key] = cleanNum === "" || cleanNum === "-" ? "0" : cleanNum;
             }
+            // Date Fields
             else if (
               [
                 "Notification_date",
                 "Deadline_of_Billing",
                 "Date_Received",
                 "Date_billed",
+                "Coverage_Start_Date",
+                "Coverage_End_Date",
               ].includes(key)
             ) {
               if (!val || val === "-" || val === "") {
@@ -921,7 +879,8 @@ if (name === "Date_billed") {
                   ? null
                   : d.toISOString().split("T")[0];
               }
-            } else {
+            }
+            else {
               obj[key] = val;
             }
           });
@@ -954,7 +913,6 @@ if (name === "Date_billed") {
             failCount++;
           }
         }
-
         alert(
           `Ingestion Finished!\nSuccess: ${successCount}\nFailed: ${failCount}`,
         );
@@ -970,82 +928,226 @@ if (name === "Date_billed") {
     reader.readAsText(file);
   };
 
+  const handleDelete = async (collectionId: string) => {
+    if (!confirm(`Are you sure you want to delete record ${collectionId}?`))
+      return;
+    try {
+      const response = await fetch(`${API_BASE}/dsp/${collectionId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete record");
+      }
+
+      setRecords((prev) =>
+        prev.filter((r) => r.Collection_ID !== collectionId),
+      );
+
+      if (editingId === collectionId) {
+        setEditingId(null);
+        setFormData(initialFormState);
+      }
+
+      alert("Record deleted successfully");
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Error deleting record. Please try again.");
+    }
+  };
+
+  // const exportToExcel = () => {
+  //   const headers = [
+  //     "Collection ID",
+  //     "Division",
+  //     "DSP",
+  //     "Coverage Period",
+  //     "Data Coverage",
+  //     "Society",
+  //     "Claim Type",
+  //     "Email Subject",
+  //     "Notification Date",
+  //     "Deadline of Billing",
+  //     "Gross",
+  //     "Currency",
+  //     "Remarks",
+  //     "Date Received",
+  //     "SI#",
+  //     "BI#",
+  //     "Amount Received",
+  //     "Bank Charge",
+  //     "Total Amount",
+  //     "Exchange Rate",
+  //     "Peso Value",
+  //     "Billing Date",
+  //     "Status",
+  //     "Remarks 2",
+  //     "Variance",
+  //     "society deducted",
+  //     "%deducted",
+  //   ];
+  //   const rows = filteredRecords.map((r) => {
+  //     const gross = Number(r.Gross) || 0;
+  //     const amountReceived = Number(r.Amount_Received) || 0;
+  //     const societyDeducted = gross - amountReceived;
+  //     const percentDeducted = gross !== 0 ? societyDeducted / gross : 0;
+
+  //     let varianceValue = Number(r.Variance) || 0;
+  //     if (r.DSP === "Foreign") {
+  //       varianceValue = societyDeducted - amountReceived;
+  //     }
+
+  //     return [
+  //       r.Collection_ID ?? "",
+  //       r.Division ?? "",
+  //       r.DSP ?? "",
+  //       r.Coverage_Period ?? "",
+  //       r.Data_Coverage ?? "",
+  //       r.Society ?? "",
+  //       r.Claim_Type ?? "",
+  //       r.Email_Subject ?? "",
+  //       r.Notification_date ?? "",
+  //       r.Deadline_of_Billing ?? "",
+  //       formatDisplayNumber(r.Gross, 2),
+  //       r.Currency ?? "",
+  //       r.DDM_Remarks ?? "",
+  //       r.Date_Received ?? "",
+  //       r["SI#"] ?? "",
+  //       r["BI#"] ?? "",
+  //       formatDisplayNumber(r.Amount_Received, 2),
+  //       formatDisplayNumber(r.Bank_Charge, 2),
+  //       formatDisplayNumber(r.Total_Amount, 2),
+  //       formatDisplayNumber(r.Exchange_Rate, 4),
+  //       formatDisplayNumber(r.Peso_Value, 2),
+  //       r.Date_billed ?? "",
+  //       r.Status ?? "",
+  //       r.Licensing_Remarks ?? "",
+  //       formatDisplayNumber(varianceValue, 2),
+  //       societyDeducted.toFixed(2),
+  //       (percentDeducted * 100).toFixed(2) + "%",
+  //     ];
+  //   });
+  //   const csv = [headers, ...rows]
+  //     .map((row) =>
+  //       row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","),
+  //     )
+  //     .join("\n");
+  //   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  //   const link = document.createElement("a");
+  //   link.href = URL.createObjectURL(blob);
+  //   const now = new Date();
+  //   const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  //   link.download = `${timestamp}_Revenue_Tracker.csv`;
+  //   link.click();
+  // };
+
   const exportToExcel = () => {
     const headers = [
       "Collection ID",
+      "Origin",
       "Division",
       "DSP",
+      "Licensee",
+      "Licensor",
+      "Society",
+      "Category",
+      "Establishment",
+      "Territory",
       "Coverage Period",
       "Data Coverage",
-      "Society",
       "Claim Type",
       "Email Subject",
+      "Rights Covered",
+      "Contract Status",
+      "Covered Service",
+      "Source Type",
       "Notification Date",
       "Deadline of Billing",
-      "Gross",
-      "Currency",
-      "Remarks",
       "Date Received",
-      "SI#",
-      "BI#",
+      "Billing Date",
+      "Status",
+      "Currency",
+      "Gross",
+      "%VAT",
+      "Total Gross Amount",
       "Amount Received",
+      "CWT",
       "Bank Charge",
       "Total Amount",
       "Exchange Rate",
       "Peso Value",
-      "Billing Date",
-      "Status",
-      "Remarks 2",
       "Variance",
-      "society deducted",
-      "%deducted",
+      "Society Deducted",
+      "% Deducted",
+      "SI#",
+      "BI#",
+      "DDM Remarks",
+      "Licensing Remarks",
     ];
-    const rows = filteredRecords.map((r) => {
-      const gross = Number(r.Gross) || 0;
-      const amountReceived = Number(r.Amount_Received) || 0;
+
+    const rows = filteredRecords.map((r: any) => {
+      // Logic calculations
+      const gross = Number(String(r.Gross).replace(/,/g, "")) || 0;
+      const amountReceived =
+        Number(String(r.Amount_Received).replace(/,/g, "")) || 0;
       const societyDeducted = gross - amountReceived;
       const percentDeducted = gross !== 0 ? societyDeducted / gross : 0;
 
-      let varianceValue = Number(r.Variance) || 0;
+      let varianceValue = Number(String(r.Variance).replace(/,/g, "")) || 0;
       if (r.DSP === "Foreign") {
         varianceValue = societyDeducted - amountReceived;
       }
 
       return [
         r.Collection_ID ?? "",
+        r.Origin ?? "",
         r.Division ?? "",
         r.DSP ?? "",
+        r.Licensee ?? "",
+        r.Licensor ?? "",
+        r.Society ?? "",
+        r.Category ?? "",
+        r.Establishment ?? "",
+        r.Territory ?? "",
         r.Coverage_Period ?? "",
         r.Data_Coverage ?? "",
-        r.Society ?? "",
         r.Claim_Type ?? "",
         r.Email_Subject ?? "",
+        r.Rights_Covered ?? "",
+        r.Contract_Status ?? "",
+        r.Covered_Service ?? "",
+        r.Source_Type ?? "",
         r.Notification_date ?? "",
         r.Deadline_of_Billing ?? "",
-        formatDisplayNumber(r.Gross, 2),
-        r.Currency ?? "",
-        r.DDM_Remarks ?? "",
         r.Date_Received ?? "",
-        r["SI#"] ?? "",
-        r["BI#"] ?? "",
+        r.Date_billed ?? "",
+        r.Status ?? "",
+        r.Currency ?? "",
+        formatDisplayNumber(r.Gross, 2),
+        r["%VAT"] ?? "",
+        r.Total_Gross_Amount ?? "",
         formatDisplayNumber(r.Amount_Received, 2),
+        r.CWT ?? "",
         formatDisplayNumber(r.Bank_Charge, 2),
         formatDisplayNumber(r.Total_Amount, 2),
         formatDisplayNumber(r.Exchange_Rate, 4),
         formatDisplayNumber(r.Peso_Value, 2),
-        r.Date_billed ?? "",
-        r.Status ?? "",
-        r.Licensing_Remarks ?? "",
         formatDisplayNumber(varianceValue, 2),
         societyDeducted.toFixed(2),
         (percentDeducted * 100).toFixed(2) + "%",
+        r["SI#"] ?? "",
+        r["BI#"] ?? "",
+        r.DDM_Remarks ?? "",
+        r.Licensing_Remarks ?? "",
       ];
     });
+
     const csv = [headers, ...rows]
       .map((row) =>
         row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","),
       )
       .join("\n");
+
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -1056,12 +1158,12 @@ if (name === "Date_billed") {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[url('/BG.png')] lg:bg-[url('/BG-laptop.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center">
+    <div className="min-h-screen w-full bg-[url('/BG.png')] lg:bg-[url('/BG-laptop.png')] bg-fixed bg-no-repeat bg-[length:100%_100%] bg-center text-black">
       <div className="relative w-full bg-[#004aad] p-3 sticky top-0 z-50">
         <div className="w-full px-1 relative z-10 flex justify-between items-center">
           <div className="flex items-center">
             <Image src="/omni.png" alt="LOGO" width={200} height={50} />
-            <div className="text-white text-xl">
+            <div className="text-white text-xl ml-4 font-bold">
               Unified Revenue Tracking System
             </div>
           </div>
@@ -1075,7 +1177,7 @@ if (name === "Date_billed") {
         </div>
       </div>
       <div className="p-4 space-y-8">
-        {formData.Origin === "Foreign" ? (
+        {formData.Origin === "Multi-Territorial" ? (
           <ForeignForm
             formData={formData}
             setFormData={setFormData}
@@ -1091,9 +1193,9 @@ if (name === "Date_billed") {
             Select={Select}
             Input={Input}
             DateInput={DateInput}
-            territories={Territories}
+            handleDelete={handleDelete}
           />
-        ) : formData.Origin === "Local" ? (
+        ) : formData.Origin === "Mono-Territorial" ? (
           <LocalForm
             formData={formData}
             setFormData={setFormData}
@@ -1109,6 +1211,7 @@ if (name === "Date_billed") {
             Select={Select}
             Input={Input}
             DateInput={DateInput}
+            handleDelete={handleDelete}
           />
         ) : (
           <form
@@ -1124,7 +1227,7 @@ if (name === "Date_billed") {
                   label="Origin"
                   name="Origin"
                   value={formData.Origin}
-                  options={["Local", "Foreign"]}
+                  options={["Mono-Territorial", "Multi-Territorial"]}
                   onChange={handleChange}
                 />
               </Section>
@@ -1139,7 +1242,7 @@ if (name === "Date_billed") {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="flex items-end gap-2 flex-wrap">
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold block mb-1 uppercase  text-black">
+              <label className="text-[10px] font-bold block mb-1 uppercase text-black">
                 Search Email Subject
               </label>
               <input
@@ -1151,7 +1254,7 @@ if (name === "Date_billed") {
               />
             </div>
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold block mb-1 uppercase  text-black">
+              <label className="text-[10px] font-bold block mb-1 uppercase text-black">
                 Filter by DSP
               </label>
               <select
@@ -1168,7 +1271,7 @@ if (name === "Date_billed") {
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold block mb-1 uppercase  text-black">
+              <label className="text-[10px] font-bold block mb-1 uppercase text-black">
                 Sort Billing Date
               </label>
               <select

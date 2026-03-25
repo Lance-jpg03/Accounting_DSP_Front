@@ -4,28 +4,30 @@
 // import { useRouter } from "next/navigation";
 // import { getCookie } from "cookies-next";
 // import Image from "next/image";
+// import ForeignForm from "./foreignForm";
+// import LocalForm from "./localForms";
 // const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
-
-// const ROLE = {
-//   LEGAL: 1,
-//   ACCOUNTING: 2,
-//   LICENSING: 3,
-// };
+// import { LICENSEE_DATA } from "./licenseeList";
 
 // const generateCollectionId = (
 //   dspName: string,
 //   existingRecords: DSPRecord[],
 // ) => {
+//   if (!dspName) return "";
+
 //   const prefix = dspName.trim().substring(0, 3).toUpperCase().padEnd(3, "X");
 //   const now = new Date();
 //   const year = now.getFullYear();
 //   const month = String(now.getMonth() + 1).padStart(2, "0");
 //   const datePart = `${year}${month}`;
+
 //   const matches = existingRecords.filter(
 //     (r) => r.DSP === dspName && r.Collection_ID?.includes(datePart),
 //   );
+
 //   const nextNumber = matches.length + 1;
 //   const counter = String(nextNumber).padStart(5, "0");
+
 //   return `${prefix}-${datePart}-${counter}`;
 // };
 
@@ -52,7 +54,7 @@
 //   Coverage_Start_Date: string;
 //   Coverage_End_Date: string;
 //   Coverage_Period: string;
-//   Licensor: string;
+//   Society: string;
 //   Claim_Type: string;
 //   Email_Subject: string;
 //   Status: string;
@@ -76,12 +78,25 @@
 //   Total_Amount: string;
 //   Variance: string;
 //   Data_Coverage?: string;
+//   Origin: string;
+//   Licensor: string;
+//   Licensee: string;
+//   Territory: string;
+//   "%VAT": string;
+//   Total_Gross_Amount?: string;
+//   CWT: string;
+//   Rights_Covered?: string;
+//   Contract_Status?: string;
+//   Covered_Service?: string;
+//   Source_Type?: string;
+//   Category?: string;
+//   Establishment?: string;
 // }
 
 // interface DSPRecord {
 //   Collection_ID: string;
 //   Coverage_Period: string | null;
-//   Licensor: string;
+//   Society: string;
 //   Claim_Type: string;
 //   Email_Subject: string;
 //   Status: string;
@@ -104,6 +119,19 @@
 //   Total_Amount: number | null;
 //   Variance: number | null;
 //   Data_Coverage?: string;
+//   Origin: string;
+//   Licensor: string;
+//   Licensee: string;
+//   Territory: string;
+//   "%VAT": string;
+//   Total_Gross_Amount?: string;
+//   CWT: string;
+//   Rights_Covered?: string;
+//   Contract_Status?: string;
+//   Covered_Service?: string;
+//   Source_Type?: string;
+//   Category?: string;
+//   Establishment?: string;
 // }
 
 // const DSP = [
@@ -121,10 +149,7 @@
 //   "Netflix",
 //   "Meta",
 //   "WhatsApp",
-//   "Concerts & Events",
-//   "Foreign",
-//   "RME (MUSERK)",
-//   "RME (MINT)",
+
 // ];
 // const claimTypes = [
 //   "Back-Claim",
@@ -135,13 +160,12 @@
 //   "MG",
 //   "Flat Fee",
 //   "Shorts",
-//   'MG Balance',
-//   'Foreign',
-//   'RME (MUSERK)',
-//   'RME (MINT)',
-//   'Flat Fee GEC'
+//   "MG Balance",
+//   "Foreign",
+//   "Flat Fee GEC",
 // ];
-// const licensors = [
+
+// const Society = [
 //   "FILSCAP",
 //   "CASH",
 //   "APRA",
@@ -224,7 +248,7 @@
 //       <input
 //         {...props}
 //         disabled={disabled}
-//         className="p-2 border rounded bg-white disabled:bg-gray-200 disabled:text-gray-500 text-sm shadow-sm"
+//         className="p-2 border rounded bg-white disabled:bg-gray-200 disabled:text-gray-500 text-black text-sm shadow-sm"
 //       />
 //     </div>
 //   );
@@ -236,7 +260,7 @@
 //       <select
 //         {...props}
 //         disabled={disabled}
-//         className="p-2 border rounded bg-white disabled:bg-gray-200 disabled:text-gray-500 text-sm shadow-sm"
+//         className="p-2 border rounded bg-white disabled:bg-gray-200 disabled:text-gray-500 text-black text-sm shadow-sm"
 //       >
 //         <option value="">-- SELECT --</option>
 //         {options.map((o: string) => (
@@ -275,7 +299,7 @@
 //     Coverage_Start_Date: "",
 //     Coverage_End_Date: "",
 //     Coverage_Period: "",
-//     Licensor: "",
+//     Society: "",
 //     Claim_Type: "",
 //     Email_Subject: "",
 //     Status: "Pending",
@@ -284,7 +308,7 @@
 //     Date_Received: "",
 //     Gross: "",
 //     Currency: "",
-//     Exchange_Rate: "",
+//     Exchange_Rate: "55",
 //     Peso_Value: "",
 //     DDM_Remarks: "",
 //     Licensing_Remarks: "",
@@ -298,6 +322,19 @@
 //     Total_Amount: "",
 //     Variance: "0.00",
 //     Data_Coverage: "",
+//     Origin: "",
+//     Licensor: "",
+//     Licensee: "",
+//     Territory: "",
+//     "%VAT": "",
+//     Total_Gross_Amount: "",
+//     CWT: "",
+//     Rights_Covered: "",
+//     Contract_Status: "",
+//     Covered_Service: "",
+//     Source_Type: "",
+//     Category: "",
+//     Establishment: "",
 //   });
 
 //   useEffect(() => {
@@ -329,10 +366,27 @@
 //       parseFloat(String(formData.Amount_Received).replace(/,/g, "")) || 0;
 //     const bankCharge =
 //       parseFloat(String(formData.Bank_Charge).replace(/,/g, "")) || 0;
+//     const grossAmount =
+//       parseFloat(String(formData.Gross).replace(/,/g, "")) || 0;
 
-//     const calculatedTotalAmountVal = amountReceived - bankCharge;
+//     const vatInput =
+//       parseFloat(String(formData["%VAT"]).replace(/,/g, "")) || 0;
+//     const cwtInput = parseFloat(String(formData.CWT).replace(/,/g, "")) || 0;
+
+//     const vatDecimal = vatInput / 100;
+//     const cwtDecimal = cwtInput / 100;
+
+//     const calculatedTotalGrossVal = grossAmount + grossAmount * vatDecimal;
+
+//     const calculatedTotalAmountVal =
+//       calculatedTotalGrossVal - amountReceived * cwtDecimal - bankCharge;
+
 //     const calculatedPesoVal = calculatedTotalAmountVal * exchangeRate;
 
+//     const calculatedTotalGross = formatDisplayNumber(
+//       calculatedTotalGrossVal,
+//       2,
+//     );
 //     const calculatedTotalAmount = formatDisplayNumber(
 //       calculatedTotalAmountVal,
 //       2,
@@ -345,6 +399,10 @@
 
 //     setFormData((prev) => {
 //       let updates: Partial<DspData> = {};
+
+//       if (prev.Total_Gross_Amount !== calculatedTotalGross)
+//         updates.Total_Gross_Amount = calculatedTotalGross;
+
 //       if (prev.Peso_Value !== calculatedPeso)
 //         updates.Peso_Value = calculatedPeso;
 //       if (prev.Total_Amount !== calculatedTotalAmount)
@@ -354,12 +412,14 @@
 
 //       return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
 //     });
-//   }, [formData.Exchange_Rate, formData.Amount_Received, formData.Bank_Charge]);
-
-//   const isDisabled = (allowedRoles: number[]) => {
-//     if (!mounted) return true;
-//     return !allowedRoles.includes(roleFlag);
-//   };
+//   }, [
+//     formData.Gross,
+//     formData.Exchange_Rate,
+//     formData.Amount_Received,
+//     formData.Bank_Charge,
+//     formData["%VAT"],
+//     formData.CWT,
+//   ]);
 
 //   useEffect(() => {
 //     setMounted(true);
@@ -457,12 +517,47 @@
 //       setFormData((p: DspData) => ({
 //         ...p,
 //         Date_billed: value,
-//         Status: value !== "" ? "Billed" : p.Status,
+//         Status:
+//           value !== ""
+//             ? "For Billing"
+//             : p.Status === "For Billing" || p.Status === "Billed"
+//               ? "Pending"
+//               : p.Status,
 //       }));
 //       return;
 //     }
 
-//     if (["Gross", "Amount_Received", "Bank_Charge"].includes(name)) {
+//     if (name === "SI#" || name === "BI#") {
+//       setFormData((p: DspData) => {
+//         const updated = { ...p, [name]: value };
+
+//         // ONLY change to Billed if BOTH are actually filled. 
+//         // This prevents the form locking while the user is still typing one of them.
+//         const isBothFilled =
+//           updated["SI#"].trim() !== "" && updated["BI#"].trim() !== "";
+
+//         return {
+//           ...updated,
+//           Status: isBothFilled
+//             ? "Billed"
+//             : p.Date_billed !== ""
+//               ? "For Billing"
+//               : "Pending",
+//         };
+//       });
+//       return;
+//     }
+
+//     if (
+//       [
+//         "Gross",
+//         "Amount_Received",
+//         "Bank_Charge",
+//         "%VAT",
+//         "CWT",
+//         "Exchange_Rate",
+//       ].includes(name)
+//     ) {
 //       setFormData((p: DspData) => ({ ...p, [name]: formatInputNumber(value) }));
 //       return;
 //     }
@@ -476,7 +571,19 @@
 //       return;
 //     }
 
-//     setFormData((p: DspData) => ({ ...p, [name]: value }));
+//     setFormData((p: DspData) => {
+//       let updated = { ...p, [name]: value };
+
+//       if (name === "Licensee") {
+//         const found = LICENSEE_DATA.find((item) => item.COMPANY === value);
+//         if (found) {
+//           updated.Category = found.CATEGORY;
+//           updated.Establishment = found.ESTABLISHMENT;
+//         }
+//       }
+
+//       return updated;
+//     });
 //   };
 
 //   const handleEditClick = (record: DSPRecord) => {
@@ -493,7 +600,7 @@
 //       DSP: record.DSP || "",
 //       Coverage_Period: record.Coverage_Period || "",
 //       Data_Coverage: record.Data_Coverage || "",
-//       Licensor: record.Licensor || "",
+//       Society: record.Society || "",
 //       Claim_Type: record.Claim_Type || "",
 //       Email_Subject: record.Email_Subject || "",
 //       Status: record.Status || "Pending",
@@ -522,6 +629,19 @@
 //       Bank_Charge: formatInputNumber(record.Bank_Charge?.toString() || ""),
 //       Total_Amount: formatDisplayNumber(record.Total_Amount, 2),
 //       Variance: formatDisplayNumber(record.Variance, 2),
+//       Origin: record.Origin || "",
+//       Licensor: record.Licensor || "",
+//       Licensee: record.Licensee || "",
+//       Territory: record.Territory || "",
+//       "%VAT": record["%VAT"] || "",
+//       Total_Gross_Amount: record.Total_Gross_Amount || "",
+//       CWT: record.CWT || "",
+//       Rights_Covered: record.Rights_Covered || "",
+//       Contract_Status: record.Contract_Status || "",
+//       Covered_Service: record.Covered_Service || "",
+//       Source_Type: record.Source_Type || "",
+//       Category: record.Category || "",
+//       Establishment: record.Establishment || "",
 //     });
 //     window.scrollTo({ top: 0, behavior: "smooth" });
 //   };
@@ -530,39 +650,48 @@
 //     e.preventDefault();
 //     setLoading(true);
 //     setGeneratedId(null);
-//     let dataToSubmit = {
+
+//     let finalCollectionId = editingId;
+//     if (!editingId) {
+//       finalCollectionId = generateCollectionId(formData.DSP, records);
+//     }
+
+//     const dataToSubmit = {
 //       ...formData,
+//       Collection_ID: finalCollectionId,
 //       Gross: formData.Gross.replace(/,/g, ""),
 //       Amount_Received: formData.Amount_Received.replace(/,/g, ""),
 //       Bank_Charge: formData.Bank_Charge.replace(/,/g, ""),
 //       Total_Amount: formData.Total_Amount.replace(/,/g, ""),
 //       Peso_Value: formData.Peso_Value.replace(/,/g, ""),
 //       Variance: formData.Variance.replace(/,/g, ""),
+//       Exchange_Rate: formData.Exchange_Rate.replace(/,/g, ""),
 //     };
-//     if (!editingId) {
-//       dataToSubmit.Collection_ID = generateCollectionId(formData.DSP, records);
-//     }
+
 //     const url = editingId ? `${API_BASE}/dsp/${editingId}` : `${API_BASE}/dsp`;
 //     const method = editingId ? "PUT" : "POST";
+
 //     try {
 //       const response = await fetch(url, {
 //         method,
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify(dataToSubmit),
 //       });
+
 //       if (!response.ok) {
 //         const errorData = await response.json();
 //         throw new Error(errorData?.error || "Failed to save DSP record");
 //       }
+
 //       const result = await response.json();
 //       setGeneratedId(result.Collection_ID);
 //       setEditingId(null);
+
 //       setFormData({
 //         Coverage_Start_Date: "",
 //         Coverage_End_Date: "",
 //         Coverage_Period: "",
-//         Data_Coverage: "",
-//         Licensor: "",
+//         Society: "",
 //         Claim_Type: "",
 //         Email_Subject: "",
 //         Status: "Pending",
@@ -571,7 +700,7 @@
 //         Date_Received: "",
 //         Gross: "",
 //         Currency: "",
-//         Exchange_Rate: "",
+//         Exchange_Rate: "55",
 //         Peso_Value: "",
 //         DDM_Remarks: "",
 //         Licensing_Remarks: "",
@@ -584,22 +713,30 @@
 //         Bank_Charge: "",
 //         Total_Amount: "",
 //         Variance: "0.00",
+//         Data_Coverage: "",
+//         Origin: "",
+//         Licensor: "",
+//         Licensee: "",
+//         Territory: "",
+//         "%VAT": "",
+//         Total_Gross_Amount: "",
+//         CWT: "",
+//         Rights_Covered: "",
+//         Contract_Status: "",
+//         Covered_Service: "",
+//         Source_Type: "",
+//         Category: "",
+//         Establishment: "",
 //       });
+
 //       fetchDSP();
+//       alert("Record saved successfully!");
 //     } catch (err: any) {
 //       console.error("Save failed", err);
 //       alert(`Save failed: ${err.message}`);
 //     } finally {
 //       setLoading(false);
 //     }
-//   };
-
-//   // Add this helper function at the top of your component or outside the main function
-//   const formatDateForDB = (dateStr: string) => {
-//     if (!dateStr || dateStr.trim() === "") return null;
-//     const date = new Date(dateStr);
-//     // Returns YYYY-MM-DD format which MS SQL expects
-//     return isNaN(date.getTime()) ? null : date.toISOString().split("T")[0];
 //   };
 
 //   const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -611,7 +748,6 @@
 //       try {
 //         const text = event.target?.result as string;
 
-//         // 1. ROBUST CSV PARSER (Handles newlines and commas inside quotes)
 //         const parseCSV = (csvText: string) => {
 //           const rows = [];
 //           let currRow = [];
@@ -625,8 +761,7 @@
 //                 if (next === '"') {
 //                   currCol += '"';
 //                   i++;
-//                 } // Escaped quote
-//                 else {
+//                 } else {
 //                   inQuotes = false;
 //                 }
 //               } else {
@@ -662,7 +797,6 @@
 //         const rawHeaders = allRows[0];
 //         const dataRows = allRows.slice(1);
 
-//         // 2. Map CSV Headers to Interface Keys
 //         const headerMap: Record<number, string> = {};
 //         rawHeaders.forEach((h, idx) => {
 //           const clean = h.toLowerCase().replace(/[^a-z0-9#]/g, "");
@@ -711,7 +845,6 @@
 //             const key = headerMap[idx];
 //             if (!key) return;
 
-//             // Cleaning Numbers
 //             if (
 //               [
 //                 "Gross",
@@ -726,9 +859,7 @@
 //               const cleanNum = val.replace(/[^\d.-]/g, "");
 //               obj[key] =
 //                 cleanNum === "" || cleanNum === "-" ? 0 : parseFloat(cleanNum);
-//             }
-//             // Cleaning Dates
-//             else if (
+//             } else if (
 //               [
 //                 "Notification_date",
 //                 "Deadline_of_Billing",
@@ -749,7 +880,6 @@
 //             }
 //           });
 
-//           // 3. Collection ID Logic (Ensuring unique sequential IDs)
 //           if (!obj.Collection_ID || obj.Collection_ID === "") {
 //             obj.Collection_ID = generateCollectionId(
 //               obj.DSP || "UNK",
@@ -760,7 +890,6 @@
 //           return obj;
 //         });
 
-//         // 4. Ingest to Backend
 //         setLoading(true);
 //         let successCount = 0;
 //         let failCount = 0;
@@ -795,6 +924,35 @@
 //     reader.readAsText(file);
 //   };
 
+//   const handleDelete = async (collectionId: string) => {
+//     // 1. Ask for confirmation (Safety first!)
+//     if (!confirm(`Are you sure you want to delete record ${collectionId}?`))
+//       return;
+
+//     try {
+//       const response = await fetch(`${API_BASE}/dsp/${collectionId}`, {
+//         method: "DELETE",
+//       });
+
+//       if (!response.ok) {
+//         throw new Error("Failed to delete record");
+//       }
+
+//       setRecords((prev) =>
+//         prev.filter((r) => r.Collection_ID !== collectionId),
+//       );
+
+//       if (editingId === collectionId) {
+//         setEditingId(null);
+//       }
+
+//       alert("Record deleted successfully");
+//     } catch (err) {
+//       console.error("Delete failed:", err);
+//       alert("Error deleting record. Please try again.");
+//     }
+//   };
+
 //   const exportToExcel = () => {
 //     const headers = [
 //       "Collection ID",
@@ -802,10 +960,10 @@
 //       "DSP",
 //       "Coverage Period",
 //       "Data Coverage",
-//       "Licensor",
+//       "Society",
 //       "Claim Type",
 //       "Email Subject",
-//       "Notif Date",
+//       "Notification Date",
 //       "Deadline of Billing",
 //       "Gross",
 //       "Currency",
@@ -830,13 +988,19 @@
 //       const amountReceived = Number(r.Amount_Received) || 0;
 //       const societyDeducted = gross - amountReceived;
 //       const percentDeducted = gross !== 0 ? societyDeducted / gross : 0;
+
+//       let varianceValue = Number(r.Variance) || 0;
+//       if (r.DSP === "Foreign") {
+//         varianceValue = societyDeducted - amountReceived;
+//       }
+
 //       return [
 //         r.Collection_ID ?? "",
 //         r.Division ?? "",
 //         r.DSP ?? "",
 //         r.Coverage_Period ?? "",
 //         r.Data_Coverage ?? "",
-//         r.Licensor ?? "",
+//         r.Society ?? "",
 //         r.Claim_Type ?? "",
 //         r.Email_Subject ?? "",
 //         r.Notification_date ?? "",
@@ -855,7 +1019,7 @@
 //         r.Date_billed ?? "",
 //         r.Status ?? "",
 //         r.Licensing_Remarks ?? "",
-//         formatDisplayNumber(r.Variance, 2),
+//         formatDisplayNumber(varianceValue, 2),
 //         societyDeducted.toFixed(2),
 //         (percentDeducted * 100).toFixed(2) + "%",
 //       ];
@@ -894,262 +1058,63 @@
 //         </div>
 //       </div>
 //       <div className="p-4 space-y-8">
-//         <form
-//           onSubmit={handleSubmit}
-//           className="grid grid-cols-1 lg:grid-cols-4 gap-4 bg-[#FFF9E5] p-4 items-stretch shadow-lg rounded-sm"
-//         >
-//           <div className="lg:col-span-2">
-//             <Section
-//               title="DDD/Legal Form"
-//               columns="grid-cols-1 md:grid-cols-5"
-//               disabled={isDisabled([ROLE.LEGAL])}
-//             >
-//               <Select
-//                 label="Division"
-//                 name="Division"
-//                 value={formData.Division}
-//                 options={["Digital", "Non-Digital"]}
-//                 onChange={handleChange}
-//               />
-//               <Select
-//                 label="Source"
-//                 name="DSP"
-//                 value={formData.DSP}
-//                 options={DSP}
-//                 onChange={handleChange}
-//               />
-//               <DateInput
-//                 label="Start Date"
-//                 name="Coverage_Start_Date"
-//                 value={formData.Coverage_Start_Date}
-//                 onChange={handleChange}
-//               />
-//               <DateInput
-//                 label="End Date"
-//                 name="Coverage_End_Date"
-//                 value={formData.Coverage_End_Date}
-//                 onChange={handleChange}
-//               />
-//               <Input
-//                 label="Data Coverage"
-//                 name="Data_Coverage"
-//                 value={formData.Data_Coverage}
-//                 readOnly
-//                 placeholder="2026(Q1)-2027(Q2)"
-//               />
-//               <Select
-//                 label="Licensor"
-//                 name="Licensor"
-//                 value={formData.Licensor}
-//                 options={licensors}
-//                 onChange={handleChange}
-//               />
-//               <Select
-//                 label="Claim Type"
-//                 name="Claim_Type"
-//                 value={formData.Claim_Type}
-//                 options={claimTypes}
-//                 onChange={handleChange}
-//               />
-//               <Input
-//                 label="Email Subject"
-//                 name="Email_Subject"
-//                 value={formData.Email_Subject}
-//                 onChange={handleChange}
-//               />
-//               <DateInput
-//                 label="Notification Date"
-//                 name="Notification_date"
-//                 value={formData.Notification_date}
-//                 onChange={handleChange}
-//               />
-//               <DateInput
-//                 label="Deadline of Billing"
-//                 name="Deadline_of_Billing"
-//                 value={formData.Deadline_of_Billing}
-//                 onChange={handleChange}
-//               />
-//               <Input
-//                 label="Gross"
-//                 name="Gross"
-//                 type="text"
-//                 value={formData.Gross || ""}
-//                 onChange={handleChange}
-//                 placeholder="0.00"
-//               />
-//               <Select
-//                 label="Currency"
-//                 name="Currency"
-//                 value={formData.Currency}
-//                 options={currencies}
-//                 onChange={handleChange}
-//               />
-//               <div className="w-[320%]">
-//                 <Input
-//                   label="DDM Remarks"
-//                   name="DDM_Remarks"
-//                   value={formData.DDM_Remarks}
+//         {formData.Origin === "Foreign" ? (
+//           <ForeignForm
+//             formData={formData}
+//             setFormData={setFormData}
+//             handleChange={handleChange}
+//             handleSubmit={handleSubmit}
+//             loading={loading}
+//             editingId={editingId}
+//             setEditingId={setEditingId}
+//             DSP={DSP}
+//             Society={Society}
+//             claimTypes={claimTypes}
+//             currencies={currencies}
+//             Select={Select}
+//             Input={Input}
+//             DateInput={DateInput}
+//             handleDelete={handleDelete}
+//           />
+//         ) : formData.Origin === "Local" ? (
+//           <LocalForm
+//             formData={formData}
+//             setFormData={setFormData}
+//             handleChange={handleChange}
+//             handleSubmit={handleSubmit}
+//             loading={loading}
+//             editingId={editingId}
+//             setEditingId={setEditingId}
+//             DSP={DSP}
+//             Society={Society}
+//             claimTypes={claimTypes}
+//             currencies={currencies}
+//             Select={Select}
+//             Input={Input}
+//             DateInput={DateInput}
+//             handleDelete={handleDelete}
+//           />
+//         ) : (
+//           <form
+//             onSubmit={handleSubmit}
+//             className="flex flex-wrap gap-4 bg-[#FFF9E5] p-4 items-stretch shadow-lg rounded-sm"
+//           >
+//             <div style={{ flex: "40%", minWidth: "300px" }}>
+//               <Section
+//                 title="Choose Origin"
+//                 columns="grid-cols-1 md:grid-cols-5"
+//               >
+//                 <Select
+//                   label="Origin"
+//                   name="Origin"
+//                   value={formData.Origin}
+//                   options={["Local", "Foreign"]}
 //                   onChange={handleChange}
 //                 />
-//               </div>
-//             </Section>
-//           </div>
-//           <div className="lg:col-span-1">
-//             <Section
-//               title="Accounting Form"
-//               columns="grid-cols-3"
-//               disabled={isDisabled([ROLE.ACCOUNTING])}
-//             >
-//               <DateInput
-//                 label="Date Received"
-//                 name="Date_Received"
-//                 value={formData.Date_Received}
-//                 onChange={handleChange}
-//               />
-//               <Input
-//                 label="SI#"
-//                 name="SI#"
-//                 type="text"
-//                 value={formData["SI#"] || ""}
-//                 onChange={handleChange}
-//               />
-//               <Input
-//                 label="BI#"
-//                 name="BI#"
-//                 type="text"
-//                 value={formData["BI#"] || ""}
-//                 onChange={handleChange}
-//               />
-//               <Input
-//                 label="Amount Received"
-//                 name="Amount_Received"
-//                 type="text"
-//                 value={formData.Amount_Received || ""}
-//                 onChange={handleChange}
-//                 placeholder="0.00"
-//               />
-//               <Select
-//                 label="Currency"
-//                 name="Currency"
-//                 value={formData.Currency}
-//                 options={currencies}
-//                 onChange={handleChange}
-//               />
-//               <Input
-//                 label={`Bank Charge (${formData.Currency || "---"})`}
-//                 name="Bank_Charge"
-//                 type="text"
-//                 value={formData.Bank_Charge || ""}
-//                 onChange={handleChange}
-//                 placeholder="0.00"
-//               />
-//               <Input
-//                 label="Total AMT"
-//                 name="Total_Amount"
-//                 type="text"
-//                 value={formData.Total_Amount || ""}
-//                 readOnly
-//               />
-//               <Input
-//                 label="Exchange Rate"
-//                 name="Exchange_Rate"
-//                 type="number"
-//                 step="0.0001"
-//                 value={formData.Exchange_Rate || ""}
-//                 onChange={handleChange}
-//               />
-//               <Input
-//                 label="Peso Value"
-//                 name="Peso_Value"
-//                 type="text"
-//                 value={formData.Peso_Value || ""}
-//                 readOnly
-//               />
-//             </Section>
-//           </div>
-//           <div className="lg:col-span-1">
-//             <Section
-//               title="Licensing Form"
-//               columns="grid-cols-1"
-//               disabled={isDisabled([ROLE.LICENSING])}
-//             >
-//               <DateInput
-//                 label="Billing Date"
-//                 name="Date_billed"
-//                 value={formData.Date_billed}
-//                 onChange={handleChange}
-//               />
-//               <Select
-//                 label="Status"
-//                 name="Status"
-//                 value={formData.Status}
-//                 options={statuses}
-//                 onChange={handleChange}
-//               />
-//               <Input
-//                 label="Licensing Remarks"
-//                 name="Licensing_Remarks"
-//                 value={formData.Licensing_Remarks}
-//                 onChange={handleChange}
-//               />
-//             </Section>
-//           </div>
-//           <div className="col-span-full flex gap-4 ">
-//             <button
-//               type="submit"
-//               disabled={
-//                 loading ||
-//                 isDisabled([ROLE.LEGAL, ROLE.ACCOUNTING, ROLE.LICENSING])
-//               }
-//               className={`${editingId ? "bg-orange-600" : "bg-yellow-500 hover:bg-yellow-600"} text-white text-xs font-bold py-2 px-6 rounded disabled:bg-gray-400`}
-//             >
-//               {loading
-//                 ? "Saving…"
-//                 : editingId
-//                   ? "Update DSP Record"
-//                   : "Save DSP Record"}
-//             </button>
-//             {editingId && (
-//               <button
-//                 type="button"
-//                 onClick={() => {
-//                   setEditingId(null);
-//                   setFormData({
-//                     Coverage_Start_Date: "",
-//                     Coverage_End_Date: "",
-//                     Coverage_Period: "",
-//                     Data_Coverage: "",
-//                     Licensor: "",
-//                     Claim_Type: "",
-//                     Email_Subject: "",
-//                     Status: "Pending",
-//                     Notification_date: "",
-//                     Deadline_of_Billing: "",
-//                     Date_Received: "",
-//                     Gross: "",
-//                     Currency: "",
-//                     Exchange_Rate: "",
-//                     Peso_Value: "",
-//                     DDM_Remarks: "",
-//                     Licensing_Remarks: "",
-//                     Date_billed: "",
-//                     DSP: "",
-//                     "SI#": "",
-//                     "BI#": "",
-//                     Division: "",
-//                     Amount_Received: "",
-//                     Bank_Charge: "",
-//                     Total_Amount: "",
-//                     Variance: "0.00",
-//                   });
-//                 }}
-//                 className="bg-gray-500 text-white text-xs font-bold py-2 px-6 rounded"
-//               >
-//                 Cancel
-//               </button>
-//             )}
-//           </div>
-//         </form>
+//               </Section>
+//             </div>
+//           </form>
+//         )}
 
 //         <h2 className="text-xl font-bold -mt-4 mb-4">
 //           Sources Revenue Records
@@ -1158,7 +1123,7 @@
 //         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
 //           <div className="flex items-end gap-2 flex-wrap">
 //             <div className="flex flex-col">
-//               <label className="text-[10px] font-bold block mb-1 uppercase text-gray-500">
+//               <label className="text-[10px] font-bold block mb-1 uppercase  text-black">
 //                 Search Email Subject
 //               </label>
 //               <input
@@ -1170,7 +1135,7 @@
 //               />
 //             </div>
 //             <div className="flex flex-col">
-//               <label className="text-[10px] font-bold block mb-1 uppercase text-gray-500">
+//               <label className="text-[10px] font-bold block mb-1 uppercase  text-black">
 //                 Filter by DSP
 //               </label>
 //               <select
@@ -1187,7 +1152,7 @@
 //               </select>
 //             </div>
 //             <div className="flex flex-col">
-//               <label className="text-[10px] font-bold block mb-1 uppercase text-gray-500">
+//               <label className="text-[10px] font-bold block mb-1 uppercase  text-black">
 //                 Sort Billing Date
 //               </label>
 //               <select
@@ -1253,21 +1218,21 @@
 //                   <th className="w-[5%] bg-blue-100 p-1">Source</th>
 //                   <th className="w-[6%] bg-blue-100 p-1">Coverage Period</th>
 //                   <th className="w-[6%] bg-blue-100 p-1">Data Coverage</th>
-//                   <th className="w-[6%] bg-blue-100 p-1">Licensor</th>
+//                   <th className="w-[6%] bg-blue-100 p-1">Society</th>
 //                   <th className="w-[7%] bg-blue-100 p-1">Claim</th>
 //                   <th className="w-[10%] bg-blue-100 p-1">Email Subject</th>
-//                   <th className="w-[5%] bg-blue-100 p-1">Notif Date</th>
+//                   <th className="w-[5%] bg-blue-100 p-1">Notification Date</th>
 //                   <th className="w-[5%] bg-blue-100 p-1">Deadline</th>
 //                   <th className="w-[6%] bg-blue-100 p-1">Gross Amount</th>
 //                   <th className="w-[4%] bg-blue-100 p-1">Currency</th>
-//                   <th className="w-[6%] bg-blue-100 p-1">DDM Remarks</th>
-//                   <th className="w-[7%] bg-red-100 p-1">Date Received</th>
+//                   <th className="w-[6%] bg-blue-100 p-1">DDM/Legal Remarks</th>
+//                   <th className="w-[5%] bg-red-100 p-1">Date Received</th>
 //                   <th className="w-[4%] bg-red-100 p-1">SI#</th>
 //                   <th className="w-[4%] bg-red-100 p-1">BI#</th>
-//                   <th className="w-[4%] bg-red-100 p-1">Amt Recvd</th>
-//                   <th className="w-[4%] bg-red-100 p-1">Bank Chrg</th>
+//                   <th className="w-[4%] bg-red-100 p-1">Amount Received</th>
+//                   <th className="w-[4%] bg-red-100 p-1">Bank Charge</th>
 //                   <th className="w-[4%] bg-red-100 p-1">Total Amt</th>
-//                   <th className="w-[4%] bg-red-100 p-1">Ex Rate</th>
+//                   <th className="w-[4%] bg-red-100 p-1">Exchange Rate</th>
 //                   <th className="w-[6%] bg-red-100 p-1">Peso Value</th>
 //                   <th className="w-[6%] bg-yellow-100 p-1">Billing Date</th>
 //                   <th className="w-[4%] bg-yellow-100 p-1">Status</th>
@@ -1301,7 +1266,7 @@
 //                     <td className="px-1 py-1 text-center truncate font-semibold">
 //                       {r.Data_Coverage}
 //                     </td>
-//                     <td className="px-1 py-1 text-center">{r.Licensor}</td>
+//                     <td className="px-1 py-1 text-center">{r.Society}</td>
 //                     <td className="px-1 py-1 text-center truncate">
 //                       {r.Claim_Type}
 //                     </td>
@@ -1326,7 +1291,9 @@
 //                       {formatDateDisplay(r.Date_Received)}
 //                     </td>
 //                     <td className="px-1 py-1 text-center">{r["SI#"]}</td>
-//                     <td className="px-1 py-1 text-center">{r["BI#"]}</td>
+//                     <td className="px-1 py-1 text-center truncate">
+//                       {r["BI#"]}
+//                     </td>
 //                     <td className="px-1 py-1 text-right">
 //                       {formatDisplayNumber(r.Amount_Received, 2)}
 //                     </td>
