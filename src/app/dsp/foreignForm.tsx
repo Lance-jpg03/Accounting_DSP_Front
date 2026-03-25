@@ -1,3 +1,563 @@
+// import React, { useEffect } from "react";
+
+// const SOCIETY_MAP: Record<string, string> = {
+//   ABRAMUS: "BR",
+//   ACAM: "CR",
+//   ACDAM: "CU",
+//   ACUM: "IL",
+//   AEPI: "GR",
+//   AKM: "AT",
+//   APDAYC: "PE",
+//   APRA: "AU",
+//   ARTISJUS: "HU",
+//   ASCAP: "US",
+//   AUTODIA: "GR",
+//   BMI: "US",
+//   "BUMA/STEMRA": "NL",
+//   CASH: "HK",
+//   "CHA (HDS ZAMP)": "HR",
+//   COMPASS: "SG",
+//   GEMA: "DE",
+//   IMRO: "IE",
+//   IPRS: "IN",
+//   HAFOX: "HU",
+//   JASRAC: "JP",
+//   KODA: "DK",
+//   KOMCA: "KR",
+//   LATGA: "LT",
+//   MACA: "MO",
+//   MACP: "MY",
+//   MCSC: "CN",
+//   MCT: "TH",
+//   MESAM: "TR",
+//   MOSCAP: "MN",
+//   MRCSN: "NP",
+//   MUST: "TW",
+//   OSA: "CZ",
+//   PRS: "GB",
+//   RAO: "RU",
+//   SABAM: "BE",
+//   SACEM: "FR",
+//   SACM: "MX",
+//   SACVEN: "VE",
+//   SADAIC: "AR",
+//   SAMRO: "ZA",
+//   SAS: "SA",
+//   SAYCO: "CO",
+//   SESAC: "US",
+//   SGAE: "ES",
+//   SIAE: "IT",
+//   SOCAN: "CA",
+//   SODRAC: "CA",
+//   SOZA: "SK",
+//   STIM: "SE",
+//   SUISA: "CH",
+//   TONO: "NO",
+//   UBC: "BR",
+//   UCMRADA: "RO",
+//   VCPMC: "VN",
+//   WAMI: "ID",
+//   FILSCAP: "PH",
+// };
+
+// const SOCIETY_FULL_NAMES: Record<string, string> = {
+//   ABRAMUS: "Associação Brasileira de Música e Artes",
+//   ACAM: "Association of Composers and Authors of Costa Rica",
+//   ACDAM: "Agencia Cubana de Derecho de Autor Musical",
+//   ACUM: "Society of Authors, Composers and Music Publishers in Israel",
+//   AEPI: "Hellenic Society for the Protection of Intellectual Property",
+//   AKM: "Staatlich genehmigte Gesellschaft der Autoren, Komponisten und Musikverleger",
+//   APDAYC: "Asociación Peruana de Autores y Compositores",
+//   APRA: "Australasian Performing Right Association",
+//   ARTISJUS: "Hungarian Bureau for the Protection of Authors' Rights",
+//   ASCAP: "American Society of Composers, Authors and Publishers",
+//   AUTODIA: "Auto-Management Organization of Greek Music Composers and Authors",
+//   BMI: "Broadcast Music, Inc.",
+//   "BUMA/STEMRA": "Buma/Stemra (Netherlands)",
+//   CASH: "Composers and Authors Society of Hong Kong",
+//   "CHA (HDS ZAMP)": "Croatian Composers' Society",
+//   COMPASS: "Composers and Authors Society of Singapore",
+//   GEMA: "Gesellschaft für musikalische Aufführungs- und mechanische Vervielfătigungsrechte",
+//   IMRO: "Irish Multi-Purpose Organisation",
+//   IPRS: "The Indian Performing Right Society Limited",
+//   HAFOX: "Hungarian Alliance of Fingerstyle Guitarists",
+//   JASRAC: "Japanese Society for Rights of Authors, Composers and Publishers",
+//   KODA: "Koda (Denmark)",
+//   KOMCA: "Korea Music Copyright Association",
+//   LATGA: "Lithuanian Association of Related Rights",
+//   MACA: "Macao Association of Composers, Authors & Publishers",
+//   MACP: "Music Authors' Copyright Protection (Malaysia)",
+//   MCSC: "Music Copyright Society of China",
+//   MCT: "Music Copyright (Thailand) Co., Ltd.",
+//   MESAM: "Türkiye Musiki Eseri Sahipleri Meslek Birliği",
+//   MOSCAP: "Mongolian Society of Composers, Authors and Publishers",
+//   MRCSN: "Music Royalty Collection Society Nepal",
+//   MUST: "Music Copyright Society of Chinese Taipei",
+//   OSA: "Ochranný svaz autorský (Czech Republic)",
+//   PRS: "Performing Right Society",
+//   RAO: "Russian Authors' Society",
+//   SABAM: "Belgian Association of Authors, Composers and Publishers",
+//   SACEM: "Société des auteurs, compositeurs et éditeurs de musique",
+//   SACM: "Sociedad de Autores y Compositores de México",
+//   SACVEN: "Sociedad de Autores y Compositores de Venezuela",
+//   SADAIC: "Sociedad Argentina de Autores y Compositores de Música",
+//   SAMRO: "Southern African Music Rights Organisation",
+//   SAS: "Saudi Authority for Intellectual Property",
+//   SAYCO: "Sociedad de Autores y Compositores de Colombia",
+//   SESAC: "SESAC (US)",
+//   SGAE: "Sociedad General de Autores y Editores",
+//   SIAE: "Società Italiana degli Autori ed Editori",
+//   SOCAN: "Society of Composers, Authors and Music Publishers of Canada",
+//   SODRAC:
+//     "Society for Reproduction Rights of Authors, Composers and Publishers in Canada",
+//   SOZA: "Slovak Performing and Mechanical Rights Society",
+//   STIM: "Swedish Performing Rights Society",
+//   SUISA: "Swiss Society for the Rights of Authors of Musical Works",
+//   TONO: "Tono (Norway)",
+//   UBC: "União Brasileira de Compositores",
+//   UCMRADA: "Romanian Collective Management Organisation for Musical Works",
+//   VCPMC: "Vietnam Music Copyright Protection Center",
+//   WAMI: "Wahana Musik Indonesia",
+//   FILSCAP: "Filipino Society of Composers, Authors and Publishers",
+// };
+// const dgSource_type = [
+//   "Music Streaming",
+//   "Messaging Platform",
+//   "OTT",
+//   "Live-Streaming Platform",
+//   "User Uploaded Content",
+//   "Non-DSP",
+//   "Others",
+// ];
+
+// export default function ForeignForm({
+//   formData,
+//   setFormData,
+//   handleChange,
+//   handleSubmit,
+//   loading,
+//   editingId,
+//   setEditingId,
+//   Society,
+//   DSP,
+//   handleDelete,
+//   currencies,
+//   Select,
+//   Input,
+//   DateInput,
+// }: any) {
+//   useEffect(() => {
+//     if (formData.Origin === "Multi-Territorial") {
+//       setFormData((prev: any) => ({
+//         ...prev,
+//         DSP: "Foreign",
+//         Division: "Non-Digital",
+//       }));
+//     }
+//   }, [formData.Origin, setFormData]);
+
+//     const getFilteredCategories = () => {
+//     if (!isDigital) {
+//       return [...DSP, "Non-DSP", "Others"];
+//     }
+//   };
+
+//   useEffect(() => {
+//     if (formData.Society) {
+//       const updates: any = {};
+//       if (SOCIETY_MAP[formData.Society]) {
+//         updates.Territory = SOCIETY_MAP[formData.Society];
+//       }
+//       if (SOCIETY_FULL_NAMES[formData.Society]) {
+//         updates.Licensee = SOCIETY_FULL_NAMES[formData.Society];
+//       }
+//       if (Object.keys(updates).length > 0) {
+//         setFormData((prev: any) => ({ ...prev, ...updates }));
+//       }
+//     }
+//   }, [formData.Society, setFormData]);
+
+//   useEffect(() => {
+//     if (formData.Division === "Digital" && formData.DSP) {
+//       const dsp = formData.DSP.toLowerCase();
+//       let newSourceType = formData.Source_Type;
+//       let newCategory = formData.Category;
+//       let newCoveredService = formData.Covered_Service;
+
+//       if (dsp === "youtube" || dsp === "capcut" || dsp === "tiktok") {
+//         newSourceType = "User Uploaded Content";
+//         newCategory = formData.DSP;
+//       } else if (
+//         [
+//           "disney",
+//           "netflix",
+//           "amazon",
+//           "hbo",
+//           "apple tv",
+//           "hayu",
+//           "huawei",
+//         ].some((s) => dsp.includes(s))
+//       ) {
+//         newSourceType = "OTT";
+//         newCategory = formData.DSP;
+//         newCoveredService = "OTT";
+//       } else if (dsp === "twitch" || dsp === "kumu") {
+//         newSourceType = "Live-Streaming Platform";
+//         newCategory = formData.DSP;
+//         newCoveredService = "MUSIC";
+//       } else if (dsp === "whatsapp") {
+//         newSourceType = "Messaging Platform";
+//         newCategory = formData.DSP;
+//         newCoveredService = "MUSIC";
+//       } else if (dsp === "spotify" || dsp === "apple music") {
+//         newSourceType = "Music Streaming";
+//         newCategory = "Spotify";
+//         newCoveredService = "MUSIC";
+//       }
+
+//       if (
+//         newSourceType !== formData.Source_Type ||
+//         newCategory !== formData.Category ||
+//         newCoveredService !== formData.Covered_Service
+//       ) {
+//         setFormData((prev: any) => ({
+//           ...prev,
+//           Source_Type: newSourceType,
+//           Category: newCategory,
+//           Covered_Service: newCoveredService,
+//         }));
+//       }
+//     }
+//   }, [formData.DSP, formData.Division, setFormData]);
+
+//   useEffect(() => {
+//     const rmeAllowed = ["MINT", "MUSERK", "ESMAA"];
+//     if (
+//       formData.Licensor === "RME" &&
+//       formData.Society &&
+//       !rmeAllowed.includes(formData.Society)
+//     ) {
+//       setFormData((prev: any) => ({ ...prev, Society: "" }));
+//     }
+//   }, [formData.Licensor, setFormData]);
+
+//   // FIX: Logic to filter society list for the dropdown
+//   const getFilteredSocieties = () => {
+//     if (formData.Licensor === "RME") {
+//       return ["MINT", "MUSERK", "ESMAA"];
+//     }
+//     return Society;
+//   };
+//     const getFilteredSourceTypes = () => {
+//     if (!isDigital) return dgSource_type;
+//   };
+
+//   const isDigital = formData.Division === "Digital";
+//   const isLockedAfterSave = !!editingId;
+
+//   return (
+//     <form
+//       onSubmit={handleSubmit}
+//       className="bg-[#FFF9E5] p-6 shadow-xl rounded-md space-y-6 border border-yellow-200"
+//     >
+//       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end -mt-4">
+//         <Select
+//           label="Origin"
+//           name="Origin"
+//           value={formData.Origin}
+//           options={["Mono-territorial", "Multi-Territorial"]}
+//           onChange={handleChange}
+//         />
+//         <Select
+//           label="Division"
+//           name="Division"
+//           value={formData.Division}
+//           options={["Non-Digital", "Digital"]}
+//           onChange={handleChange}
+//         />
+//         {isDigital ? (
+//           <>
+//             <div className="lg:col-span-1">
+//               <Select
+//                 label="Source"
+//                 name="DSP"
+//                 value={formData.DSP}
+//                 options={DSP}
+//                 onChange={handleChange}
+//               />
+//             </div>
+//           </>
+//         ) : (
+//           <Select
+//             label="Source"
+//             name="DSP"
+//             value={formData.DSP}
+//             options={["Society", "Non-Society"]}
+//             onChange={handleChange}
+//           />
+//         )}
+//         <Select
+//           label="Licensor"
+//           name="Licensor"
+//           value={formData.Licensor}
+//           options={["RME", "Direct License", "Society"]}
+//           onChange={handleChange}
+//           disable = {isDigital}
+//         />
+//           <Select
+//             label="Source Type"
+//             name="Source_Type"
+//             value={formData.Source_Type}
+//             options={getFilteredSourceTypes()}
+//             onChange={handleChange}
+//           />
+//           <Select
+//             label="Category"
+//             name="Category"
+//             value={formData.Category}
+//             options={getFilteredCategories()}
+//             onChange={handleChange}
+//             disabled={formData.Source_Type === "Radio Broadcast"}
+//           />
+//         <Select
+//           label="Society"
+//           name="Society"
+//           options={getFilteredSocieties()}
+//           value={formData.Society}
+//           onChange={handleChange}
+//           disabled={formData.Licensor === "Direct License"}
+//         />
+//         <Input
+//           label="Licensee"
+//           name="Licensee"
+//           value={formData.Licensee}
+//           onChange={handleChange}
+//           disabled={formData.Licensor !== "Direct License"}
+//         />
+//         <Input
+//           label="Territory"
+//           name="Territory"
+//           value={formData.Territory}
+//           onChange={handleChange}
+//           disabled={true}
+//         />
+//         <Select
+//           label="Covered Service"
+//           name="Covered_Service"
+//           value={formData.Covered_Service}
+//           options={["Head Office", "Cebu", "Legal"]}
+//           onChange={handleChange}
+//         />
+//         <Select
+//           label="Rights Covered"
+//           name="Rights_Covered"
+//           value={formData.Rights_Covered}
+//           options={["PR", "MR", "PR & MR"]}
+//           onChange={handleChange}
+//         />
+//         <DateInput
+//           label="Notification Date"
+//           name="Notification_date"
+//           value={formData.Notification_date}
+//           onChange={handleChange}
+//         />
+//         <Select
+//           label="Currency"
+//           name="Currency"
+//           value={formData.Currency}
+//           options={currencies}
+//           onChange={handleChange}
+//         />
+//         <Input
+//           label="Gross Amount"
+//           name="Gross"
+//           value={formData.Gross}
+//           onChange={handleChange}
+//         />
+//       </div>
+
+//       <div className="flex flex-wrap gap-4">
+//         <div
+//           style={{ flex: "200px" }}
+//           className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
+//         >
+//           <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30">
+//             Period Covered
+//           </h3>
+//           <div className="grid grid-cols-3 gap-3">
+//             <DateInput
+//               label="Start Date"
+//               name="Coverage_Start_Date"
+//               value={formData.Coverage_Start_Date}
+//               onChange={handleChange}
+//             />
+//             <DateInput
+//               label="End Date"
+//               name="Coverage_End_Date"
+//               value={formData.Coverage_End_Date}
+//               onChange={handleChange}
+//             />
+//             <Input
+//               label="Data Coverage"
+//               name="Data_Coverage"
+//               value={formData.Data_Coverage}
+//               disabled={true}
+//             />
+//           </div>
+//         </div>
+
+//         <div
+//           style={{ flex: "550px" }}
+//           className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
+//         >
+//           <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30">
+//             Payment Information
+//           </h3>
+//           <div className="grid grid-cols-2 md:grid-cols-9 gap-3">
+//             <DateInput
+//               label="Date of Receipt"
+//               name="Date_Received"
+//               value={formData.Date_Received}
+//               onChange={handleChange}
+//             />
+//             <Input
+//               label="Currency"
+//               name="Currency"
+//               value={formData.Currency}
+//               onChange={handleChange}
+//               disabled={true}
+//             />
+//             <Input
+//               label="Amount Received"
+//               name="Amount_Received"
+//               value={formData.Amount_Received}
+//               onChange={handleChange}
+//             />
+//             <Input
+//               label=" %VAT"
+//               name="%VAT"
+//               value={formData["%VAT"]}
+//               onChange={handleChange}
+//             />
+//             <Input
+//               label="Total Gross"
+//               name="Total_Gross_Amount"
+//               value={formData.Total_Gross_Amount}
+//               disabled={true}
+//             />
+//             <Input
+//               label="Exchange Rate"
+//               name="Exchange_Rate"
+//               value={formData.Exchange_Rate}
+//               onChange={handleChange}
+//             />
+//             <Input
+//               label="PHP Amount"
+//               name="Peso_Value"
+//               value={formData.Peso_Value}
+//               disabled={true}
+//             />
+//             <Input
+//               label="CWT"
+//               name="CWT"
+//               value={formData.CWT}
+//               onChange={handleChange}
+//             />
+//             <Input
+//               label="Total Amount"
+//               name="Total_Amount"
+//               value={formData.Total_Amount}
+//               disabled={true}
+//             />
+//           </div>
+//         </div>
+
+//         <div
+//           style={{ flex: "1 1 100%" }}
+//           className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40 flex flex-wrap items-center gap-6 shadow-sm"
+//         >
+//           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 flex-grow">
+//             <DateInput
+//               label="Billing Date"
+//               name="Date_billed"
+//               value={formData.Date_billed}
+//               onChange={handleChange}
+//             />
+//             <Input
+//               label="SI#"
+//               name="SI#"
+//               value={formData["SI#"]}
+//               onChange={handleChange}
+//               disabled={
+//                 !formData.Date_billed ||
+//                 formData.Date_billed === "" ||
+//                 isLockedAfterSave
+//               }
+//             />
+//             <Input
+//               label="BI#"
+//               name="BI#"
+//               value={formData["BI#"]}
+//               onChange={handleChange}
+//               disabled={
+//                 !formData.Date_billed ||
+//                 formData.Date_billed === "" ||
+//                 isLockedAfterSave
+//               }
+//             />
+//             <Input
+//               label="Remarks"
+//               name="Licensing_Remarks"
+//               value={formData.Licensing_Remarks}
+//               onChange={handleChange}
+//               disabled={isLockedAfterSave}
+//             />
+//             <Input
+//               label="Variance"
+//               name="Variance"
+//               value={formData.Variance}
+//               disabled={true}
+//             />
+//           </div>
+
+//           <div className="flex flex-col items-center">
+//             <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">
+//               Current Status
+//             </span>
+//             <div className="bg-white px-5 py-4 rounded-sm font-black text-[#004aad] uppercase text-xl border-4 border-yellow-400 shadow-inner">
+//               {formData.Status || "PENDING"}
+//             </div>
+//           </div>
+
+//           <div className="flex flex-col gap-2 min-w-[200px]">
+//             {editingId && (
+//               <button
+//                 type="button"
+//                 onClick={() => handleDelete(editingId)}
+//                 className="w-full bg-red-500 hover:bg-red-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400 cursor-pointer"
+//               >
+//                 Delete Row
+//               </button>
+//             )}
+
+//             <button
+//               type="submit"
+//               disabled={loading}
+//               className="w-full bg-[#004aad] hover:bg-blue-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400 cursor-pointer"
+//             >
+//               {loading
+//                 ? "Processing..."
+//                 : editingId
+//                   ? "Update Record"
+//                   : "Save Record"}
+//             </button>
+//           </div>
+//         </div>
+//       </div>
+//     </form>
+//   );
+// }
+
 import React, { useEffect } from "react";
 
 const SOCIETY_MAP: Record<string, string> = {
@@ -108,7 +668,8 @@ const SOCIETY_FULL_NAMES: Record<string, string> = {
   SGAE: "Sociedad General de Autores y Editores",
   SIAE: "Società Italiana degli Autori ed Editori",
   SOCAN: "Society of Composers, Authors and Music Publishers of Canada",
-  SODRAC: "Society for Reproduction Rights of Authors, Composers and Publishers in Canada",
+  SODRAC:
+    "Society for Reproduction Rights of Authors, Composers and Publishers in Canada",
   SOZA: "Slovak Performing and Mechanical Rights Society",
   STIM: "Swedish Performing Rights Society",
   SUISA: "Swiss Society for the Rights of Authors of Musical Works",
@@ -120,6 +681,16 @@ const SOCIETY_FULL_NAMES: Record<string, string> = {
   FILSCAP: "Filipino Society of Composers, Authors and Publishers",
 };
 
+const dgSource_type = [
+  "Music Streaming",
+  "Messaging Platform",
+  "OTT",
+  "Live-Streaming Platform",
+  "User Uploaded Content",
+  "Non-DSP",
+  "Others",
+];
+
 export default function ForeignForm({
   formData,
   setFormData,
@@ -129,12 +700,17 @@ export default function ForeignForm({
   editingId,
   setEditingId,
   Society,
+  DSP,
   handleDelete,
   currencies,
   Select,
   Input,
   DateInput,
 }: any) {
+  const isDigital = formData.Division === "Digital";
+  const isLockedAfterSave = !!editingId;
+
+  // 1. Multi-Territorial Logic
   useEffect(() => {
     if (formData.Origin === "Multi-Territorial") {
       setFormData((prev: any) => ({
@@ -145,49 +721,135 @@ export default function ForeignForm({
     }
   }, [formData.Origin, setFormData]);
 
+  // 2. Society Auto-Mapping
   useEffect(() => {
     if (formData.Society) {
       const updates: any = {};
-      if (SOCIETY_MAP[formData.Society]) {
+      if (SOCIETY_MAP[formData.Society])
         updates.Territory = SOCIETY_MAP[formData.Society];
-      }
-      if (SOCIETY_FULL_NAMES[formData.Society]) {
+      if (SOCIETY_FULL_NAMES[formData.Society])
         updates.Licensee = SOCIETY_FULL_NAMES[formData.Society];
-      }
       if (Object.keys(updates).length > 0) {
         setFormData((prev: any) => ({ ...prev, ...updates }));
       }
     }
   }, [formData.Society, setFormData]);
 
-  // FIX: Validation to clear Society if it doesn't match RME requirements
-  useEffect(() => {
-    const rmeAllowed = ["MINT", "MUSERK", "ESMAA"];
-    if (
-      formData.Licensor === "RME" &&
-      formData.Society &&
-      !rmeAllowed.includes(formData.Society)
-    ) {
-      setFormData((prev: any) => ({ ...prev, Society: "" }));
+    useEffect(() => {
+    if (formData.Division === "Non-Digital") {
+      setFormData((prev: any) => {
+        if (prev.Society !== "" || prev.Licensee !== "") {
+          return {
+            ...prev,
+            Society: "",
+            Licensee: "",
+            Territory: "",
+          };
+        }
+        return prev;
+      });
     }
-  }, [formData.Licensor, setFormData]);
+  }, [formData.Licensor, formData.Division, setFormData]);
 
-  // FIX: Logic to filter society list for the dropdown
-  const getFilteredSocieties = () => {
-    if (formData.Licensor === "RME") {
-      return ["MINT", "MUSERK", "ESMAA"];
+  // 3. Digital Source/Category Logic
+  useEffect(() => {
+    if (formData.Division === "Digital" && formData.DSP) {
+      const dsp = formData.DSP.toLowerCase();
+      let newSourceType = formData.Source_Type;
+      let newCategory = formData.Category;
+      let newCoveredService = formData.Covered_Service;
+
+      if (["youtube", "capcut", "tiktok"].some((s) => dsp.includes(s))) {
+        newSourceType = "User Uploaded Content";
+        newCategory = formData.DSP;
+      } else if (
+        [
+          "disney",
+          "netflix",
+          "amazon",
+          "hbo",
+          "apple tv",
+          "hayu",
+          "huawei",
+        ].some((s) => dsp.includes(s))
+      ) {
+        newSourceType = "OTT";
+        newCategory = formData.DSP;
+        newCoveredService = "OTT";
+      } else if (dsp === "twitch" || dsp === "kumu") {
+        newSourceType = "Live-Streaming Platform";
+        newCategory = formData.DSP;
+        newCoveredService = "MUSIC";
+      } else if (dsp === "whatsapp") {
+        newSourceType = "Messaging Platform";
+        newCategory = formData.DSP;
+        newCoveredService = "MUSIC";
+      } else if (dsp === "spotify" || dsp === "apple music") {
+        newSourceType = "Music Streaming";
+        newCategory = "Spotify";
+        newCoveredService = "MUSIC";
+      }
+
+      setFormData((prev: any) => ({
+        ...prev,
+        Source_Type: newSourceType,
+        Category: newCategory,
+        Covered_Service: newCoveredService,
+      }));
     }
+  }, [formData.DSP, formData.Division, setFormData]);
+
+  // 4. Calculations Logic
+  useEffect(() => {
+    const gross = parseFloat(formData.Gross) || 0;
+    const received = parseFloat(formData.Amount_Received) || 0;
+    const vatPercent = parseFloat(formData["%VAT"]) || 0;
+    const exRate = parseFloat(formData.Exchange_Rate) || 0;
+    const cwt = parseFloat(formData.CWT) || 0;
+
+    const totalGross = received / (1 + vatPercent / 100);
+    const pesoValue = totalGross * exRate;
+    const totalAmount = pesoValue - cwt;
+    const variance = gross - totalGross;
+
+    setFormData((prev: any) => ({
+      ...prev,
+      Total_Gross_Amount: totalGross.toFixed(2),
+      Peso_Value: pesoValue.toFixed(2),
+      Total_Amount: totalAmount.toFixed(2),
+      Variance: variance.toFixed(2),
+    }));
+  }, [
+    formData.Gross,
+    formData.Amount_Received,
+    formData["%VAT"],
+    formData.Exchange_Rate,
+    formData.CWT,
+    setFormData,
+  ]);
+
+  // Helper Functions
+  const getFilteredSocieties = () => {
+    if (formData.Licensor === "RME") return ["MINT", "MUSERK", "ESMAA"];
     return Society;
   };
 
-  const isLockedAfterSave = !!editingId;
+  const getFilteredSourceTypes = () => {
+    return isDigital
+      ? dgSource_type
+      : ["Broadcast", "Live Concert/Events", "General", "Reproduction"];
+  };
+
+  const getFilteredCategories = () => {
+    return isDigital ? [formData.DSP] : [...DSP, "Non-DSP", "Others"];
+  };
 
   return (
     <form
       onSubmit={handleSubmit}
       className="bg-[#FFF9E5] p-6 shadow-xl rounded-md space-y-6 border border-yellow-200"
     >
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-11 gap-3 items-end -mt-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end -mt-4">
         <Select
           label="Origin"
           name="Origin"
@@ -195,25 +857,42 @@ export default function ForeignForm({
           options={["Mono-territorial", "Multi-Territorial"]}
           onChange={handleChange}
         />
-        <Input
+        <Select
           label="Division"
           name="Division"
           value={formData.Division}
+          options={["Non-Digital", "Digital"]}
           onChange={handleChange}
-          disabled={true}
         />
+
         <Select
           label="Source"
           name="DSP"
           value={formData.DSP}
-          options={["Society", "Non-Society"]}
+          options={isDigital ? DSP : ["Society", "Non-Society"]}
           onChange={handleChange}
         />
+
         <Select
           label="Licensor"
           name="Licensor"
           value={formData.Licensor}
           options={["RME", "Direct License", "Society"]}
+          onChange={handleChange}
+          disabled={isDigital}
+        />
+        <Select
+          label="Source Type"
+          name="Source_Type"
+          value={formData.Source_Type}
+          options={getFilteredSourceTypes()}
+          onChange={handleChange}
+        />
+        <Select
+          label="Category"
+          name="Category"
+          value={formData.Category}
+          options={getFilteredCategories()}
           onChange={handleChange}
         />
         <Select
@@ -235,8 +914,14 @@ export default function ForeignForm({
           label="Territory"
           name="Territory"
           value={formData.Territory}
-          onChange={handleChange}
           disabled={true}
+        />
+        <Select
+          label="Covered Service"
+          name="Covered_Service"
+          value={formData.Covered_Service}
+          options={["Head Office", "Cebu", "Legal", "MUSIC", "OTT"]}
+          onChange={handleChange}
         />
         <Select
           label="Rights Covered"
@@ -267,6 +952,7 @@ export default function ForeignForm({
       </div>
 
       <div className="flex flex-wrap gap-4">
+        {/* Period Covered */}
         <div
           style={{ flex: "200px" }}
           className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
@@ -296,6 +982,7 @@ export default function ForeignForm({
           </div>
         </div>
 
+        {/* Payment Information */}
         <div
           style={{ flex: "550px" }}
           className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
@@ -314,7 +1001,6 @@ export default function ForeignForm({
               label="Currency"
               name="Currency"
               value={formData.Currency}
-              onChange={handleChange}
               disabled={true}
             />
             <Input
@@ -362,6 +1048,7 @@ export default function ForeignForm({
           </div>
         </div>
 
+        {/* Status and Actions */}
         <div
           style={{ flex: "1 1 100%" }}
           className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40 flex flex-wrap items-center gap-6 shadow-sm"
@@ -378,22 +1065,14 @@ export default function ForeignForm({
               name="SI#"
               value={formData["SI#"]}
               onChange={handleChange}
-              disabled={
-                !formData.Date_billed ||
-                formData.Date_billed === "" ||
-                isLockedAfterSave
-              }
+              disabled={!formData.Date_billed || isLockedAfterSave}
             />
             <Input
               label="BI#"
               name="BI#"
               value={formData["BI#"]}
               onChange={handleChange}
-              disabled={
-                !formData.Date_billed ||
-                formData.Date_billed === "" ||
-                isLockedAfterSave
-              }
+              disabled={!formData.Date_billed || isLockedAfterSave}
             />
             <Input
               label="Remarks"
@@ -424,16 +1103,15 @@ export default function ForeignForm({
               <button
                 type="button"
                 onClick={() => handleDelete(editingId)}
-                className="w-full bg-red-500 hover:bg-red-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400 cursor-pointer"
+                className="w-full bg-red-500 hover:bg-red-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95"
               >
                 Delete Row
               </button>
             )}
-
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#004aad] hover:bg-blue-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400 cursor-pointer"
+              className="w-full bg-[#004aad] hover:bg-blue-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400"
             >
               {loading
                 ? "Processing..."

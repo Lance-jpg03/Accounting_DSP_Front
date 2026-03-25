@@ -106,7 +106,6 @@ const SOURCE_TYPE_FILTER_MAP: Record<string, string[]> = {
   Reproduction: ["Synchronization", "Mechanical"],
 };
 
-// Internal map for Source_Type specific category filtering
 const TYPE_TO_CATEGORY_MAP: Record<string, string[]> = {
   "Terrestrial Television": ["Free TV", "Cable TV"],
   "Cable Television": ["Free TV", "Cable TV"],
@@ -129,7 +128,49 @@ export default function LocalForm({
   DateInput,
 }: LocalFormProps) {
   
-  // Existing Logic: Set defaults for Local origin
+  useEffect(() => {
+    if (formData.Division === "Digital" && formData.DSP) {
+      const dsp = formData.DSP.toLowerCase();
+      let newSourceType = formData.Source_Type;
+      let newCategory = formData.Category;
+      let newCoveredService = formData.Covered_Service;
+
+      if (dsp === "youtube" || dsp === "capcut" || dsp ==="tiktok") {
+        newSourceType = "User Uploaded Content";
+        newCategory = formData.DSP
+      } else if (["disney", "netflix", "amazon", "hbo", "apple tv", "hayu", "huawei"].some(s => dsp.includes(s))) {
+        newSourceType = "OTT";
+        newCategory = formData.DSP;
+        newCoveredService = "OTT";
+      } else if (dsp === "twitch" || dsp === "kumu") {
+        newSourceType = "Live-Streaming Platform";
+        newCategory = formData.DSP
+        newCoveredService = "MUSIC";
+      } else if (dsp === "whatsapp") {
+        newSourceType = "Messaging Platform";
+        newCategory = formData.DSP
+        newCoveredService = "MUSIC";
+      } else if (dsp === "spotify" || dsp ==="apple music") {
+        newSourceType = "Music Streaming";
+        newCategory = "Spotify";
+        newCoveredService = "MUSIC";
+      }
+
+      if (
+        newSourceType !== formData.Source_Type ||
+        newCategory !== formData.Category ||
+        newCoveredService !== formData.Covered_Service
+      ) {
+        setFormData((prev: any) => ({
+          ...prev,
+          Source_Type: newSourceType,
+          Category: newCategory,
+          Covered_Service: newCoveredService,
+        }));
+      }
+    }
+  }, [formData.DSP, formData.Division, setFormData]);
+
   useEffect(() => {
     if (formData.Origin === "Mono-Territorial") {
       setFormData((prev: any) => ({
@@ -140,7 +181,6 @@ export default function LocalForm({
     }
   }, [formData.Origin, setFormData]);
 
-  // NEW FIX: Clear Establishment and Category if Licensee is cleared
   useEffect(() => {
     if (!formData.Licensee || formData.Licensee.trim() === "") {
       setFormData((prev: any) => ({
@@ -151,7 +191,6 @@ export default function LocalForm({
     }
   }, [formData.Licensee, setFormData]);
 
-  // NEW FIX: Auto-select 'Radio' if Source Type is 'Radio Broadcast'
   useEffect(() => {
     if (formData.Source_Type === "Radio Broadcast") {
       setFormData((prev: any) => ({
@@ -168,17 +207,23 @@ export default function LocalForm({
     if (!isNonDigital) {
       return [...DSP, "Non-DSP", "Others"];
     }
-
-    // NEW FIX: Check for Source_Type specific categories first (Broadcast logic)
     const typeSpecific = TYPE_TO_CATEGORY_MAP[formData.Source_Type];
     if (typeSpecific) return typeSpecific;
-
     return SOURCE_CATEGORY_MAP[formData.DSP] || CATEGORY_OPTIONS;
   };
 
   const getFilteredSourceTypes = () => {
     if (!isNonDigital) return dgSource_type;
     return SOURCE_TYPE_FILTER_MAP[formData.DSP] || Source_Type;
+  };
+
+  // Helper for dynamic Covered Service options
+  const getCoveredServiceOptions = () => {
+    const dsp = formData.DSP?.toLowerCase();
+    if (formData.Division === "Digital" && (dsp === "youtube" || dsp === "capcut")) {
+      return ["AVOD", "SVOD", "SHORTS", "OTT"];
+    }
+    return ["AVOD", "SVOD", "SHORTS", "OTT", "MUSIC"];
   };
 
   return (
@@ -280,9 +325,8 @@ export default function LocalForm({
                 label="Covered Service"
                 name="Covered_Service"
                 value={formData.Covered_Service}
-                options={["AVOD", "SVOD", "SHORTS", "OTT", "MUSIC"]}
+                options={["Head Office", "Cebu", "Legal"]}
                 onChange={handleChange}
-                disabled={true}
               />
             </div>
             <div className="lg:col-span-1">
@@ -391,7 +435,7 @@ export default function LocalForm({
                 label="Covered Service"
                 name="Covered_Service"
                 value={formData.Covered_Service}
-                options={["AVOD", "SVOD", "SHORTS", "OTT", "MUSIC"]}
+                options={getCoveredServiceOptions()}
                 onChange={handleChange}
               />
             </div>
