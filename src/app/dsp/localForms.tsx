@@ -107,8 +107,8 @@ const SOURCE_TYPE_FILTER_MAP: Record<string, string[]> = {
 };
 
 const TYPE_TO_CATEGORY_MAP: Record<string, string[]> = {
-  "Terrestrial Television": ["Free TV", "Cable TV"],
-  "Cable Television": ["Free TV", "Cable TV"],
+  "Terrestrial Television": ["Free TV",],
+  "Cable Television": ["Cable TV"],
   "Radio Broadcast": ["Radio"],
 };
 
@@ -127,7 +127,7 @@ export default function LocalForm({
   Input,
   DateInput,
 }: LocalFormProps) {
-  
+
   useEffect(() => {
     if (formData.Division === "Digital" && formData.DSP) {
       const dsp = formData.DSP.toLowerCase();
@@ -135,7 +135,7 @@ export default function LocalForm({
       let newCategory = formData.Category;
       let newCoveredService = formData.Covered_Service;
 
-      if (dsp === "youtube" || dsp === "capcut" || dsp ==="tiktok") {
+      if (dsp === "youtube" || dsp === "capcut" || dsp === "tiktok") {
         newSourceType = "User Uploaded Content";
         newCategory = formData.DSP
       } else if (["disney", "netflix", "amazon", "hbo", "apple tv", "hayu", "huawei"].some(s => dsp.includes(s))) {
@@ -150,7 +150,7 @@ export default function LocalForm({
         newSourceType = "Messaging Platform";
         newCategory = formData.DSP
         newCoveredService = "MUSIC";
-      } else if (dsp === "spotify" || dsp ==="apple music") {
+      } else if (dsp === "spotify" || dsp === "apple music") {
         newSourceType = "Music Streaming";
         newCategory = "Spotify";
         newCoveredService = "MUSIC";
@@ -196,6 +196,24 @@ export default function LocalForm({
       setFormData((prev: any) => ({
         ...prev,
         Category: "Radio",
+      }));
+    }
+  }, [formData.Source_Type, setFormData]);
+
+  useEffect(() => {
+    if (formData.Source_Type === "Cable Television") {
+      setFormData((prev: any) => ({
+        ...prev,
+        Category: "Cable TV",
+      }));
+    }
+  }, [formData.Source_Type, setFormData]);
+
+  useEffect(() => {
+    if (formData.Source_Type === "Terrestrial Television") {
+      setFormData((prev: any) => ({
+        ...prev,
+        Category: "Free TV",
       }));
     }
   }, [formData.Source_Type, setFormData]);
@@ -277,10 +295,10 @@ export default function LocalForm({
             value={formData.Category}
             options={getFilteredCategories()}
             onChange={handleChange}
-            disabled={formData.Source_Type === "Radio Broadcast"}
+            // Use .includes() to return a boolean true/false
+            disabled={["Radio Broadcast", "Terrestrial Television", "Cable Television"].includes(formData.Source_Type)}
           />
         </div>
-
         {isNonDigital ? (
           <>
             <div className="lg:col-span-2">
