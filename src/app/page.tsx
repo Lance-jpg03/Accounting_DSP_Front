@@ -65,7 +65,7 @@ export default function ProjectFlashLogin() {
         className={`absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-1000 ${
           isInitialized ? "opacity-100" : "opacity-0"
         }`}
-        style={{ backgroundImage: "url('/LOGIN FORM (4).gif')" }}
+        style={{ backgroundImage: "url('/login1.gif')" }}
       />
       <div
         className={`content-sidebar w-full md:w-[55%] ${
@@ -111,11 +111,11 @@ export default function ProjectFlashLogin() {
 
         <footer className="footer-copyright">
           <p className={poppins.className}>
-            © 2024 Omni Play | <span className="text-gray-300">Digital Service Provider</span>
+            © 2024 Omni Play | <span className="text-gray-400">Digital Service Provider</span>
           </p>
             <button
               onClick={() => setShowPrivacy(true)}
-              className="text-[9px] uppercase tracking-widest text-gray-500 hover:text-[#f0bb0e] transition-colors"
+              className="text-[10px] uppercase tracking-widest text-blue-500 hover:text-blue-800 transition-colors "
             >
               View Privacy Notice
             </button>
