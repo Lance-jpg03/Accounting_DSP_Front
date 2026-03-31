@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 
 const SOCIETY_MAP: Record<string, string> = {
- AACIMH: "HN",
+  AACIMH: "HN",
   ABRAC: "BR",
   ABRAMUS: "BR",
   ACAM: "CR",
@@ -395,9 +395,20 @@ export default function ForeignForm({
   Select,
   Input,
   DateInput,
+  onCancel
 }: any) {
   const isDigital = formData.Division === "Digital";
   const isLockedAfterSave = !!editingId;
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const role = localStorage.getItem("userRole");
+    setUserRole(role);
+  }, []);
+  const isAdmin = userRole === "1";
+  const isSubAdmin = userRole === "2";
+  const isUser = userRole === "3";
+
 
   useEffect(() => {
     if (formData.Origin === "Multi-Territorial") {
@@ -422,7 +433,7 @@ export default function ForeignForm({
     }
   }, [formData.Society, setFormData]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (formData.Division === "Non-Digital") {
       setFormData((prev: any) => {
         if (prev.Society !== "" || prev.Licensee !== "") {
@@ -536,278 +547,289 @@ export default function ForeignForm({
       onSubmit={handleSubmit}
       className="bg-[#FFF9E5] p-6 shadow-xl rounded-md space-y-6 border border-yellow-200"
     >
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end -mt-4">
-        <Select
-          label="Origin"
-          name="Origin"
-          value={formData.Origin}
-          options={["Mono-territorial", "Multi-Territorial"]}
-          onChange={handleChange}
-        />
-        <Select
-          label="Division"
-          name="Division"
-          value={formData.Division}
-          options={["Non-Digital", "Digital"]}
-          onChange={handleChange}
-        />
+      <fieldset disabled={isUser} className="contents">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end -mt-4">
+          <Select
+            label="Origin"
+            name="Origin"
+            value={formData.Origin}
+            options={["Mono-territorial", "Multi-Territorial"]}
+            onChange={handleChange}
+          />
+          <Select
+            label="Division"
+            name="Division"
+            value={formData.Division}
+            options={["Non-Digital", "Digital"]}
+            onChange={handleChange}
+          />
 
-        <Select
-          label="Source"
-          name="DSP"
-          value={formData.DSP}
-          options={isDigital ? DSP : ["Society", "Non-Society"]}
-          onChange={handleChange}
-        />
+          <Select
+            label="Source"
+            name="DSP"
+            value={formData.DSP}
+            options={isDigital ? DSP : ["Society", "Non-Society"]}
+            onChange={handleChange}
+          />
 
-        <Select
-          label="Licensor"
-          name="Licensor"
-          value={formData.Licensor}
-          options={["RME", "Direct License", "Society"]}
-          onChange={handleChange}
-          disabled={isDigital}
-        />
-        <Select
-          label="Source Type"
-          name="Source_Type"
-          value={formData.Source_Type}
-          options={getFilteredSourceTypes()}
-          onChange={handleChange}
-        />
-        <Select
-          label="Category"
-          name="Category"
-          value={formData.Category}
-          options={getFilteredCategories()}
-          onChange={handleChange}
-        />
-        <Select
-          label="Society"
-          name="Society"
-          options={getFilteredSocieties()}
-          value={formData.Society}
-          onChange={handleChange}
-          disabled={formData.Licensor === "Direct License"}
-        />
-        <Input
-          label="Licensee"
-          name="Licensee"
-          value={formData.Licensee}
-          onChange={handleChange}
-          disabled={formData.Licensor !== "Direct License"}
-        />
-        <Input
-          label="Territory"
-          name="Territory"
-          value={formData.Territory}
-          disabled={true}
-        />
-        <Select
-          label="Covered Service"
-          name="Covered_Service"
-          value={formData.Covered_Service}
-          options={["Head Office", "Cebu", "Legal", "MUSIC", "OTT"]}
-          onChange={handleChange}
-        />
-        <Select
-          label="Rights Covered"
-          name="Rights_Covered"
-          value={formData.Rights_Covered}
-          options={["PR", "MR", "PR & MR"]}
-          onChange={handleChange}
-        />
-        <DateInput
-          label="Notification Date"
-          name="Notification_date"
-          value={formData.Notification_date}
-          onChange={handleChange}
-        />
-        <Select
-          label="Currency"
-          name="Currency"
-          value={formData.Currency}
-          options={currencies}
-          onChange={handleChange}
-        />
-        <Input
-          label="Gross Amount"
-          name="Gross"
-          value={formData.Gross}
-          onChange={handleChange}
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-4">
-        {/* Period Covered */}
-        <div
-          style={{ flex: "200px" }}
-          className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
-        >
-          <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30">
-            Period Covered
-          </h3>
-          <div className="grid grid-cols-3 gap-3">
-            <DateInput
-              label="Start Date"
-              name="Coverage_Start_Date"
-              value={formData.Coverage_Start_Date}
-              onChange={handleChange}
-            />
-            <DateInput
-              label="End Date"
-              name="Coverage_End_Date"
-              value={formData.Coverage_End_Date}
-              onChange={handleChange}
-            />
-            <Input
-              label="Data Coverage"
-              name="Data_Coverage"
-              value={formData.Data_Coverage}
-              disabled={true}
-            />
-          </div>
+          <Select
+            label="Licensor"
+            name="Licensor"
+            value={formData.Licensor}
+            options={["RME", "Direct License", "Society"]}
+            onChange={handleChange}
+            disabled={isDigital}
+          />
+          <Select
+            label="Source Type"
+            name="Source_Type"
+            value={formData.Source_Type}
+            options={getFilteredSourceTypes()}
+            onChange={handleChange}
+          />
+          <Select
+            label="Category"
+            name="Category"
+            value={formData.Category}
+            options={getFilteredCategories()}
+            onChange={handleChange}
+          />
+          <Select
+            label="Society"
+            name="Society"
+            options={getFilteredSocieties()}
+            value={formData.Society}
+            onChange={handleChange}
+            disabled={formData.Licensor === "Direct License"}
+          />
+          <Input
+            label="Licensee"
+            name="Licensee"
+            value={formData.Licensee}
+            onChange={handleChange}
+            disabled={formData.Licensor !== "Direct License"}
+          />
+          <Input
+            label="Territory"
+            name="Territory"
+            value={formData.Territory}
+            disabled={true}
+          />
+          <Select
+            label="Covered Service"
+            name="Covered_Service"
+            value={formData.Covered_Service}
+            options={["Head Office", "Cebu", "Legal", "MUSIC", "OTT"]}
+            onChange={handleChange}
+          />
+          <Select
+            label="Rights Covered"
+            name="Rights_Covered"
+            value={formData.Rights_Covered}
+            options={["PR", "MR", "PR & MR"]}
+            onChange={handleChange}
+          />
+          <DateInput
+            label="Notification Date"
+            name="Notification_date"
+            value={formData.Notification_date}
+            onChange={handleChange}
+          />
+          <Select
+            label="Currency"
+            name="Currency"
+            value={formData.Currency}
+            options={currencies}
+            onChange={handleChange}
+          />
+          <Input
+            label="Gross Amount"
+            name="Gross"
+            value={formData.Gross}
+            onChange={handleChange}
+          />
         </div>
 
-        {/* Payment Information */}
-        <div
-          style={{ flex: "550px" }}
-          className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
-        >
-          <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30">
-            Payment Information
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-9 gap-3">
-            <DateInput
-              label="Date of Receipt"
-              name="Date_Received"
-              value={formData.Date_Received}
-              onChange={handleChange}
-            />
-            <Input
-              label="Currency"
-              name="Currency"
-              value={formData.Currency}
-              disabled={true}
-            />
-            <Input
-              label="Amount Received"
-              name="Amount_Received"
-              value={formData.Amount_Received}
-              onChange={handleChange}
-            />
-            <Input
-              label=" %VAT"
-              name="%VAT"
-              value={formData["%VAT"]}
-              onChange={handleChange}
-            />
-            <Input
-              label="Total Gross"
-              name="Total_Gross_Amount"
-              value={formData.Total_Gross_Amount}
-              disabled={true}
-            />
-            <Input
-              label="Exchange Rate"
-              name="Exchange_Rate"
-              value={formData.Exchange_Rate}
-              onChange={handleChange}
-            />
-            <Input
-              label="PHP Amount"
-              name="Peso_Value"
-              value={formData.Peso_Value}
-              disabled={true}
-            />
-            <Input
-              label="CWT"
-              name="CWT"
-              value={formData.CWT}
-              onChange={handleChange}
-            />
-            <Input
-              label="Total Amount"
-              name="Total_Amount"
-              value={formData.Total_Amount}
-              disabled={true}
-            />
-          </div>
-        </div>
-
-        {/* Status and Actions */}
-        <div
-          style={{ flex: "1 1 100%" }}
-          className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40 flex flex-wrap items-center gap-6 shadow-sm"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 flex-grow">
-            <DateInput
-              label="Billing Date"
-              name="Date_billed"
-              value={formData.Date_billed}
-              onChange={handleChange}
-            />
-            <Input
-              label="SI#"
-              name="SI#"
-              value={formData["SI#"]}
-              onChange={handleChange}
-              disabled={!formData.Date_billed || isLockedAfterSave}
-            />
-            <Input
-              label="BI#"
-              name="BI#"
-              value={formData["BI#"]}
-              onChange={handleChange}
-              disabled={!formData.Date_billed || isLockedAfterSave}
-            />
-            <Input
-              label="Remarks"
-              name="Licensing_Remarks"
-              value={formData.Licensing_Remarks}
-              onChange={handleChange}
-              disabled={isLockedAfterSave}
-            />
-            <Input
-              label="Variance"
-              name="Variance"
-              value={formData.Variance}
-              disabled={true}
-            />
-          </div>
-
-          <div className="flex flex-col items-center">
-            <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">
-              Current Status
-            </span>
-            <div className="bg-white px-5 py-4 rounded-sm font-black text-[#004aad] uppercase text-xl border-4 border-yellow-400 shadow-inner">
-              {formData.Status || "PENDING"}
+        <div className="flex flex-wrap gap-4">
+          {/* Period Covered */}
+          <div
+            style={{ flex: "1 1 200px" }}
+            className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
+          >
+            <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30">
+              Period Covered
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              <DateInput
+                label="Start Date"
+                name="Coverage_Start_Date"
+                value={formData.Coverage_Start_Date}
+                onChange={handleChange}
+              />
+              <DateInput
+                label="End Date"
+                name="Coverage_End_Date"
+                value={formData.Coverage_End_Date}
+                onChange={handleChange}
+              />
+              <Input
+                label="Data Coverage"
+                name="Data_Coverage"
+                value={formData.Data_Coverage}
+                disabled={true}
+              />
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 min-w-[200px]">
-            {editingId && (
-              <button
-                type="button"
-                onClick={() => handleDelete(editingId)}
-                className="w-full bg-red-500 hover:bg-red-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95"
-              >
-                Delete Row
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#004aad] hover:bg-blue-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400"
-            >
-              {loading
-                ? "Processing..."
-                : editingId
-                  ? "Update Record"
-                  : "Save Record"}
-            </button>
+          {/* Payment Information */}
+          <div
+            style={{ flex: "1 1 550px" }}
+            className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
+          >
+            <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30">
+              Payment Information
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-9 gap-3">
+              <DateInput
+                label="Date of Receipt"
+                name="Date_Received"
+                value={formData.Date_Received}
+                onChange={handleChange}
+              />
+              <Input
+                label="Currency"
+                name="Currency"
+                value={formData.Currency}
+                disabled={true}
+              />
+              <Input
+                label="Amount Received"
+                name="Amount_Received"
+                value={formData.Amount_Received}
+                onChange={handleChange}
+              />
+              <Input
+                label=" %VAT"
+                name="%VAT"
+                value={formData["%VAT"]}
+                onChange={handleChange}
+              />
+              <Input
+                label="Total Gross"
+                name="Total_Gross_Amount"
+                value={formData.Total_Gross_Amount}
+                disabled={true}
+              />
+              <Input
+                label="Exchange Rate"
+                name="Exchange_Rate"
+                value={formData.Exchange_Rate}
+                onChange={handleChange}
+              />
+              <Input
+                label="PHP Amount"
+                name="Peso_Value"
+                value={formData.Peso_Value}
+                disabled={true}
+              />
+              <Input
+                label="CWT"
+                name="CWT"
+                value={formData.CWT}
+                onChange={handleChange}
+              />
+              <Input
+                label="Total Amount"
+                name="Total_Amount"
+                value={formData.Total_Amount}
+                disabled={true}
+              />
+            </div>
+          </div>
+
+          {/* Status Panel */}
+          <div
+            style={{ flex: "1 1 100%" }}
+            className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40 flex flex-wrap items-center gap-6 shadow-sm"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 flex-grow">
+              <DateInput
+                label="Billing Date"
+                name="Date_billed"
+                value={formData.Date_billed}
+                onChange={handleChange}
+              />
+              <Input
+                label="SI#"
+                name="SI#"
+                value={formData["SI#"]}
+                onChange={handleChange}
+                disabled={!formData.Date_billed || isLockedAfterSave}
+              />
+              <Input
+                label="BI#"
+                name="BI#"
+                value={formData["BI#"]}
+                onChange={handleChange}
+                disabled={!formData.Date_billed || isLockedAfterSave}
+              />
+              <Input
+                label="Remarks"
+                name="Licensing_Remarks"
+                value={formData.Licensing_Remarks}
+                onChange={handleChange}
+                disabled={isLockedAfterSave}
+              />
+              <Input
+                label="Variance"
+                name="Variance"
+                value={formData.Variance}
+                disabled={true}
+              />
+            </div>
+
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">
+                Current Status
+              </span>
+              <div className="bg-white px-5 py-4 rounded-sm font-black text-[#004aad] uppercase text-xl border-4 border-yellow-400 shadow-inner">
+                {formData.Status || "PENDING"}
+              </div>
+            </div>
           </div>
         </div>
+      </fieldset>
+
+      <div className="flex justify-end gap-3 pt-4 border-t border-yellow-200">
+        {editingId && isAdmin && (
+          <button
+            type="button"
+            onClick={() => handleDelete(editingId)}
+            className="bg-red-500 hover:bg-red-800 text-white font-black py-2 px-6 rounded-lg uppercase transition-all active:scale-95 text-xs"
+          >
+            Delete Row
+          </button>
+        )}
+
+        {!isUser && (
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-[#004aad] hover:bg-blue-800 text-white font-black py-2 px-6 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400 text-xs"
+          >
+            {loading ? "Processing..." : editingId ? "Update Record" : "Save Record"}
+          </button>
+        )}
+
+        {isUser && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="bg-gray-500 hover:bg-gray-600 text-white font-black py-2 px-6 rounded-lg uppercase transition-all active:scale-95 text-xs"
+          >
+            Close View (Read-Only)
+          </button>
+        )}
       </div>
     </form>
   );

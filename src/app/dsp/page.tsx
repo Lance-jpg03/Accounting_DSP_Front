@@ -389,9 +389,8 @@ function Section({
 }: any) {
   return (
     <div
-      className={`border rounded overflow-hidden bg-[#FFF9E5] shadow-sm h-full flex flex-col ${
-        disabled ? "opacity-50 pointer-events-none" : ""
-      }`}
+      className={`border rounded overflow-hidden bg-[#FFF9E5] shadow-sm h-full flex flex-col ${disabled ? "opacity-50 pointer-events-none" : ""
+        }`}
     >
       <div className="bg-[#004aad] p-3 border-b">
         <h2 className="font-bold text-lg text-white uppercase tracking-wider">
@@ -453,7 +452,8 @@ export default function DSPPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [generatedId, setGeneratedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string>("User");
   const ROWS_PER_PAGE = 10;
 
   const initialFormState: DspData = {
@@ -499,6 +499,14 @@ export default function DSPPage() {
   };
 
   const [formData, setFormData] = useState<DspData>(initialFormState);
+
+  useEffect(() => {
+    const role = localStorage.getItem("userRole");
+    setUserRole(role);
+  }, []);
+  const isAdmin = userRole === "1";
+  const isSubAdmin = userRole === "2";
+  const isUser = userRole === "3";
 
   useEffect(() => {
     if (formData.Coverage_Start_Date && formData.Coverage_End_Date) {
@@ -1117,6 +1125,11 @@ export default function DSPPage() {
     }
   };
 
+  const onCancel = () => {
+    setEditingId(null);
+    setFormData(initialFormState);
+  };
+
 
   const exportToExcel = () => {
     const headers = [
@@ -1244,13 +1257,24 @@ export default function DSPPage() {
               Unified Revenue Tracking System
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded transition-all shadow-md uppercase text-xs"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">
+                Welcome, {displayName}
+              </span>
+              <span className={`text-[10px] font-bold italic uppercase ${isAdmin ? "text-green-400" : isSubAdmin ? "text-yellow-400" : "text-gray-300"
+                }`}>
+                {isAdmin ? " Administrator" : isSubAdmin ? "Data Editor" : isUser ? "View Only Access" : "Guest"}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded transition-all shadow-md uppercase text-xs active:scale-95"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </div>
       <div className="p-4 space-y-8">
@@ -1289,6 +1313,7 @@ export default function DSPPage() {
             Input={Input}
             DateInput={DateInput}
             handleDelete={handleDelete}
+            onCancel={onCancel}
           />
         ) : (
           <form
@@ -1442,15 +1467,20 @@ export default function DSPPage() {
                 {paginatedRecords.map((r) => (
                   <tr
                     key={r.Collection_ID}
-                    className={`border-b border-gray-300 divide-x divide-gray-300 hover:bg-gray-50 transition-colors ${editingId === r.Collection_ID ? "bg-blue-50" : ""}`}
+                    className={`border-b border-gray-300 divide-x divide-gray-300 transition-colors ${editingId === r.Collection_ID ? "bg-blue-50" : ""
+                      } ${isUser ? "" : "hover:bg-gray-50"}`} // Only show hover effect if NOT a Level 3 User
                   >
                     <td className="px-1 py-1 text-blue-600 font-bold">
-                      <button
-                        onClick={() => handleEditClick(r)}
-                        className="hover:underline text-left w-full truncate"
-                      >
-                        {r.Collection_ID}
-                      </button>
+                      {isUser ? (
+                        <span className="text-gray-500 px-1">{r.Collection_ID}</span>
+                      ) : (
+                        <button
+                          onClick={() => handleEditClick(r)}
+                          className="hover:underline text-left w-full truncate px-1"
+                        >
+                          {r.Collection_ID}
+                        </button>
+                      )}
                     </td>
                     <td className="px-1 py-1 text-left truncate">
                       {r.Division}
