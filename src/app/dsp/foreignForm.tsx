@@ -547,7 +547,6 @@ export default function ForeignForm({
       onSubmit={handleSubmit}
       className="bg-[#FFF9E5] p-6 shadow-xl rounded-md space-y-6 border border-yellow-200"
     >
-      <fieldset disabled={isUser} className="contents">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end -mt-4">
           <Select
             label="Origin"
@@ -798,9 +797,8 @@ export default function ForeignForm({
             </div>
           </div>
         </div>
-      </fieldset>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-yellow-200">
+      <div className="flex justify-end gap-3  border-yellow-200">
         {editingId && isAdmin && (
           <button
             type="button"
@@ -811,7 +809,6 @@ export default function ForeignForm({
           </button>
         )}
 
-        {!isUser && (
           <button
             type="submit"
             disabled={loading}
@@ -819,17 +816,6 @@ export default function ForeignForm({
           >
             {loading ? "Processing..." : editingId ? "Update Record" : "Save Record"}
           </button>
-        )}
-
-        {isUser && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="bg-gray-500 hover:bg-gray-600 text-white font-black py-2 px-6 rounded-lg uppercase transition-all active:scale-95 text-xs"
-          >
-            Close View (Read-Only)
-          </button>
-        )}
       </div>
     </form>
   );
