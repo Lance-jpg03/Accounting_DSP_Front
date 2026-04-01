@@ -1411,7 +1411,7 @@ export default function DSPPage() {
               onChange={handleBulkUpload}
               className="hidden"
             />
-            <button
+            {/* <button
               onClick={() => fileInputRef.current?.click()}
               className="bg-blue-700 hover:bg-blue-800 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm h-[34px]"
             >
@@ -1423,7 +1423,24 @@ export default function DSPPage() {
               className="bg-yellow-500 hover:bg-yellow-700 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm h-[34px]"
             >
               EXPORT EXCEL
-            </button>
+            </button> */}
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-blue-700 hover:bg-blue-800 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm h-[34px]"
+                >
+                  BULK INGEST
+                </button>
+
+                <button
+                  onClick={exportToExcel}
+                  className="bg-yellow-500 hover:bg-yellow-700 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm h-[34px]"
+                >
+                  EXPORT EXCEL
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -1468,19 +1485,15 @@ export default function DSPPage() {
                   <tr
                     key={r.Collection_ID}
                     className={`border-b border-gray-300 divide-x divide-gray-300 transition-colors ${editingId === r.Collection_ID ? "bg-blue-50" : ""
-                      } ${isUser ? "" : "hover:bg-gray-50"}`} // Only show hover effect if NOT a Level 3 User
+                      } hover:bg-gray-50`}
                   >
                     <td className="px-1 py-1 text-blue-600 font-bold">
-                      {isUser ? (
-                        <span className="text-gray-500 px-1">{r.Collection_ID}</span>
-                      ) : (
-                        <button
-                          onClick={() => handleEditClick(r)}
-                          className="hover:underline text-left w-full truncate px-1"
-                        >
-                          {r.Collection_ID}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleEditClick(r)}
+                        className="hover:underline text-left w-full truncate px-1"
+                      >
+                        {r.Collection_ID}
+                      </button>
                     </td>
                     <td className="px-1 py-1 text-left truncate">
                       {r.Division}
