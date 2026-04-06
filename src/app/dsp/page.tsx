@@ -1411,20 +1411,8 @@ export default function DSPPage() {
               onChange={handleBulkUpload}
               className="hidden"
             />
-            {/* <button
-              onClick={() => fileInputRef.current?.click()}
-              className="bg-blue-700 hover:bg-blue-800 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm h-[34px]"
-            >
-              BULK INGEST
-            </button>
 
-            <button
-              onClick={exportToExcel}
-              className="bg-yellow-500 hover:bg-yellow-700 text-white text-[10px] font-bold px-4 py-2 rounded shadow-sm h-[34px]"
-            >
-              EXPORT EXCEL
-            </button> */}
-            {isAdmin && (
+            {(isAdmin || isSubAdmin) && (
               <>
                 <button
                   onClick={() => fileInputRef.current?.click()}

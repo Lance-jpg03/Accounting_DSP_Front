@@ -843,11 +843,11 @@ export default function LocalForm({
       let newCategory = formData.Category;
       let newCoveredService = formData.Covered_Service;
 
-      if (dsp === "youtube" || dsp === "capcut" || dsp === "tiktok") {
+      if (dsp === "youtube" || dsp === "capcut" || dsp === "tiktok" || dsp === "meta") {
         newSourceType = "User Uploaded Content";
         newCategory = formData.DSP;
       } else if (
-        ["disney", "netflix", "amazon", "hbo", "apple tv", "hayu", "huawei"].some(
+        ["disney", "netflix", "amazon", "hbo", "meta", "apple tv", "hayu", "huawei"].some(
           (s) => dsp.includes(s)
         )
       ) {
