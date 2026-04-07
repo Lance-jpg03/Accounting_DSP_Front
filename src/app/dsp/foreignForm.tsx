@@ -283,7 +283,7 @@ const SOCIETY_FULL_NAMES: Record<string, string> = {
   FIP: "French Association of Authors and Music Publishers",
   GCA: "Georgian Copyright Association",
   GEA: "Greek Association for the Collective Management of Performers' Rights",
-  GEMA: "Gesellschaft für musikalische Aufführungs- und mechanische Vervielfältigungsrechte",
+  GEMA: "Gesellschaft für musikalische Aufführungs- und mechanische Vervielfătigungsrechte",
   GESAC: "European Grouping of Societies of Authors and Composers",
   GESTOR: "The Union for the Protection of Authorship of Czech Republic",
   GHS: "Great Britain Health and Safety Executive",
@@ -370,14 +370,13 @@ const SOCIETY_FULL_NAMES: Record<string, string> = {
   "WID CENTRE": "WID Center"
 };
 
-const dgSource_type = [
+const dgCategories = [
   "Music Streaming",
   "Messaging Platform",
   "OTT",
   "Live-Streaming Platform",
   "User Uploaded Content",
   "Non-DSP",
-  "Others",
 ];
 
 export default function ForeignForm({
@@ -408,8 +407,6 @@ export default function ForeignForm({
 
   // PERMISSION LOGIC
   const isAdmin = userRole === "1";
-  const isSubAdmin = userRole === "2";
-  const isUser = userRole === "3";
   const canDelete = isAdmin;
 
   // 1. Origin Logic
@@ -423,14 +420,24 @@ export default function ForeignForm({
     }
   }, [formData.Origin, setFormData]);
 
-  // 2. Society Auto-mapping
+  // 2. Society Auto-mapping & CLEAR LOGIC
   useEffect(() => {
+    if (!formData.Society || formData.Society === "" || formData.Society === "- SELECT -") {
+      setFormData((prev: any) => ({
+        ...prev,
+        Licensee: "",
+        Territory: "",
+      }));
+      return;
+    }
+
     if (formData.Society) {
       const updates: any = {};
       if (SOCIETY_MAP[formData.Society])
         updates.Territory = SOCIETY_MAP[formData.Society];
       if (SOCIETY_FULL_NAMES[formData.Society])
         updates.Licensee = SOCIETY_FULL_NAMES[formData.Society];
+
       if (Object.keys(updates).length > 0) {
         setFormData((prev: any) => ({ ...prev, ...updates }));
       }
@@ -441,30 +448,25 @@ export default function ForeignForm({
   useEffect(() => {
     if (formData.Division === "Digital" && formData.DSP) {
       const dsp = formData.DSP.toLowerCase();
-      let newSourceType = formData.Source_Type;
+      let newSourceType = formData.DSP; // Mirror Source to Source Type
       let newCategory = formData.Category;
       let newCoveredService = formData.Covered_Service;
 
       if (["youtube", "capcut", "tiktok"].some((s) => dsp.includes(s))) {
-        newSourceType = "User Uploaded Content";
-        newCategory = formData.DSP;
+        newCategory = "User Uploaded Content";
       } else if (
         ["disney", "netflix", "amazon", "hbo", "apple tv", "hayu", "huawei"].some((s) => dsp.includes(s))
       ) {
-        newSourceType = "OTT";
-        newCategory = formData.DSP;
+        newCategory = "OTT";
         newCoveredService = "OTT";
       } else if (dsp === "twitch" || dsp === "kumu") {
-        newSourceType = "Live-Streaming Platform";
-        newCategory = formData.DSP;
+        newCategory = "Live-Streaming Platform";
         newCoveredService = "MUSIC";
       } else if (dsp === "whatsapp") {
-        newSourceType = "Messaging Platform";
-        newCategory = formData.DSP;
+        newCategory = "Messaging Platform";
         newCoveredService = "MUSIC";
       } else if (dsp === "spotify" || dsp === "apple music") {
-        newSourceType = "Music Streaming";
-        newCategory = "Spotify";
+        newCategory = "Music Streaming";
         newCoveredService = "MUSIC";
       }
 
@@ -473,6 +475,16 @@ export default function ForeignForm({
         Source_Type: newSourceType,
         Category: newCategory,
         Covered_Service: newCoveredService,
+      }));
+    }
+  }, [formData.DSP, formData.Division, setFormData]);
+
+  // Logic for LIVE CONCERT/EVENT/ELECTION
+  useEffect(() => {
+    if (formData.Division === "Non-Digital" && formData.DSP === "Live Concert/Events/Election") {
+      setFormData((prev: any) => ({
+        ...prev,
+        Covered_Service: "International"
       }));
     }
   }, [formData.DSP, formData.Division, setFormData]);
@@ -512,21 +524,24 @@ export default function ForeignForm({
   };
 
   const getFilteredSourceTypes = () => {
-    if (isDigital) return dgSource_type;
-    // START NEW LOGIC
+    if (isDigital) return [formData.DSP || "Select Source"]; // Mirror Source
     if (formData.DSP === "Non-Society") return ["Foreign"];
-    if (formData.DSP === "Live Concert/Events/Election") return ["Live Concert/Events/Election"];
-    // END NEW LOGIC
+    if (formData.DSP === "Live Concert/Events/Election") return ["LIVE CONCERT/EVENT", "ONLINE EVENTS"];
     return ["Broadcast", "Live Concert/Events/Election", "General", "Reproduction"];
   };
 
   const getFilteredCategories = () => {
-    if (isDigital) return [formData.DSP];
-    // START NEW LOGIC
+    if (isDigital) return dgCategories;
     if (formData.DSP === "Non-Society") return ["Muserk", "Mint"];
     if (formData.DSP === "Live Concert/Events/Election") return ["Concert/Event/Election"];
-    // END NEW LOGIC
     return [...DSP, "Non-DSP", "Others"];
+  };
+
+  const getCoveredServiceOptions = () => {
+    if (formData.Division === "Non-Digital" && formData.DSP === "Live Concert/Events/Election") {
+      return ["International"];
+    }
+    return ["Head Office", "Cebu", "Legal", "Election"];
   };
 
   return (
@@ -603,14 +618,14 @@ export default function ForeignForm({
           label="Covered Service"
           name="Covered_Service"
           value={formData.Covered_Service}
-          options={["Head Office", "Cebu", "Legal", "Election"]}
+          options={getCoveredServiceOptions()}
           onChange={handleChange}
         />
         <Select
           label="Rights Covered"
           name="Rights_Covered"
           value={formData.Rights_Covered}
-          options={["PR", "MR", "PR & MR"]}
+          options={["PR", "MR", "PR & MR", "Synch"]}
           onChange={handleChange}
         />
         <DateInput
@@ -722,7 +737,6 @@ export default function ForeignForm({
           </div>
 
           <div className="flex flex-col gap-2 min-w-[200px]">
-            {/* DELETE BUTTON: Visible ONLY for Admin */}
             {editingId && canDelete && (
               <button
                 type="button"
@@ -733,7 +747,6 @@ export default function ForeignForm({
               </button>
             )}
 
-            {/* SAVE/UPDATE BUTTON: Accessible for roles 1, 2, and 3 */}
             <button
               type="submit"
               disabled={loading}

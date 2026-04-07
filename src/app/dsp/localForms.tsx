@@ -40,7 +40,8 @@ const Source_Type = [
   "Mechanical",
 ];
 
-const dgSource_type = [
+// This list is now the designated Category list for Digital
+const dgCategories = [
   "Music Streaming",
   "Messaging Platform",
   "OTT",
@@ -128,39 +129,32 @@ export default function LocalForm({
   Input,
   DateInput,
 }: LocalFormProps) {
+
+  // Logic for Digital mapping
   useEffect(() => {
     if (formData.Division === "Digital" && formData.DSP) {
       const dsp = formData.DSP.toLowerCase();
-      let newSourceType = formData.Source_Type;
+      let newSourceType = formData.DSP; // Source Type reflects the Source Name
       let newCategory = formData.Category;
       let newCoveredService = formData.Covered_Service;
 
       if (dsp === "youtube" || dsp === "capcut" || dsp === "tiktok" || dsp === "meta") {
-        newSourceType = "User Uploaded Content";
-        newCategory = formData.DSP;
+        newCategory = "User Uploaded Content";
       } else if (
         ["disney", "netflix", "amazon", "hbo", "meta", "apple tv", "hayu", "huawei"].some(
           (s) => dsp.includes(s)
         )
       ) {
-        newSourceType = "OTT";
-        newCategory = formData.DSP;
+        newCategory = "OTT";
         newCoveredService = "OTT";
       } else if (dsp === "twitch" || dsp === "kumu") {
-        newSourceType = "Live-Streaming Platform";
-        newCategory = formData.DSP;
-        newCoveredService = "MUSIC";
-      } else if (dsp === "twitch" || dsp === "kumu") {
-        newSourceType = "Live-Streaming Platform";
-        newCategory = formData.DSP;
+        newCategory = "Live-Streaming Platform";
         newCoveredService = "MUSIC";
       } else if (dsp === "whatsapp") {
-        newSourceType = "Messaging Platform";
-        newCategory = formData.DSP;
+        newCategory = "Messaging Platform";
         newCoveredService = "MUSIC";
       } else if (dsp === "spotify" || dsp === "apple music") {
-        newSourceType = "Music Streaming";
-        newCategory = "Spotify";
+        newCategory = "Music Streaming";
         newCoveredService = "MUSIC";
       }
 
@@ -179,12 +173,11 @@ export default function LocalForm({
     }
   }, [formData.DSP, formData.Division, setFormData]);
 
-  // NEW LOGIC FOR NON-DIGITAL MAPPINGS
+  // Logic for Non-Digital Mappings
   useEffect(() => {
     if (formData.Division === "Non-Digital") {
       let update: any = {};
 
-      // 1. Broadcast logic
       if (formData.DSP === "Broadcast") {
         if (formData.Source_Type === "Terrestrial Television") {
           update.Category = "Free TV";
@@ -198,21 +191,17 @@ export default function LocalForm({
         }
       }
 
-      // 2. Live Concert/Events logic
       if (formData.DSP === "Live Concert/Events") {
         if (!["International", "Local"].includes(formData.Covered_Service)) {
-          update.Covered_Service = "Local"; // Default
+          update.Covered_Service = "Local";
         }
       }
 
-      // 3. General logic
       if (formData.DSP === "General") {
         update.Covered_Service = "Local";
       }
 
-      // 4. Reproduction logic
       if (formData.DSP === "Reproduction") {
-        update.Source_Type = formData.Source_Type;
         update.Category = formData.Source_Type === "Synchronization" ? "Synchronization" : "Mechanical";
         if (!["Head Office", "Legal"].includes(formData.Covered_Service)) {
           update.Covered_Service = "Head Office";
@@ -231,9 +220,8 @@ export default function LocalForm({
     const role = localStorage.getItem("userRole");
     setUserRole(role);
   }, []);
+
   const isAdmin = userRole === "1";
-  const isSubAdmin = userRole === "2";
-  const isUser = userRole === "3";
 
   useEffect(() => {
     if (formData.Origin === "Mono-Territorial") {
@@ -260,7 +248,7 @@ export default function LocalForm({
 
   const getFilteredCategories = () => {
     if (!isNonDigital) {
-      return [...DSP, "Non-DSP", "Others"];
+      return dgCategories; // Use the specific list for Digital Categories
     }
     const typeSpecific = TYPE_TO_CATEGORY_MAP[formData.Source_Type];
     if (typeSpecific) return typeSpecific;
@@ -268,7 +256,9 @@ export default function LocalForm({
   };
 
   const getFilteredSourceTypes = () => {
-    if (!isNonDigital) return dgSource_type;
+    if (!isNonDigital) {
+      return [formData.DSP || "Select Source First"]; // Reflects the selected Source (DSP)
+    }
     return SOURCE_TYPE_FILTER_MAP[formData.DSP] || Source_Type;
   };
 
@@ -285,10 +275,7 @@ export default function LocalForm({
     }
 
     const dsp = formData.DSP?.toLowerCase();
-    if (
-      formData.Division === "Digital" &&
-      (dsp === "youtube" || dsp === "capcut")
-    ) {
+    if (formData.Division === "Digital" && (dsp === "youtube" || dsp === "capcut")) {
       return ["AVOD", "SVOD", "SHORTS", "OTT"];
     }
     return ["AVOD", "SVOD", "SHORTS", "OTT", "MUSIC"];
@@ -330,6 +317,7 @@ export default function LocalForm({
               onChange={handleChange}
             />
           </div>
+
           <div className="lg:col-span-1">
             <Select
               label="Source Type"
@@ -339,6 +327,7 @@ export default function LocalForm({
               onChange={handleChange}
             />
           </div>
+
           <div className="lg:col-span-1">
             <Select
               label="Category"
@@ -349,6 +338,7 @@ export default function LocalForm({
               disabled={isNonDigital && ["Broadcast", "Reproduction"].includes(formData.DSP)}
             />
           </div>
+
           {isNonDigital ? (
             <>
               <div className="lg:col-span-1">
@@ -356,7 +346,7 @@ export default function LocalForm({
                   label="Contract Status"
                   name="Contract_Status"
                   value={formData.Contract_Status}
-                  options={["New", "Renewed", "Continuous"]}
+                  options={["New", "Renewed",]}
                   onChange={handleChange}
                 />
               </div>
@@ -378,8 +368,6 @@ export default function LocalForm({
                   disabled={true}
                 />
               </div>
-
-
               <div className="lg:col-span-1">
                 <Input
                   label="Territory"
@@ -414,7 +402,7 @@ export default function LocalForm({
                   label="Right Covered"
                   name="Rights_Covered"
                   value={formData.Rights_Covered}
-                  options={["PR", "MR", "PR & MR"]}
+                  options={["PR", "MR", "PR & MR", "Synch"]}
                   onChange={handleChange}
                 />
               </div>
@@ -523,7 +511,7 @@ export default function LocalForm({
                   label="Rights Covered"
                   name="Rights_Covered"
                   value={formData.Rights_Covered}
-                  options={["PR", "MR", "PR & MR"]}
+                  options={["PR", "MR", "PR & MR", "Synch"]}
                   onChange={handleChange}
                 />
               </div>
