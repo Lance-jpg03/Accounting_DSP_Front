@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { LICENSEE_DATA } from "./licenseeList";
 
 interface LocalFormProps {
   formData: any;
@@ -135,8 +134,16 @@ export default function LocalForm({
   DateInput,
 }: LocalFormProps) {
 
+  const [dynamicLicensees, setDynamicLicensees] = useState<any[]>([]);
+
   useEffect(() => {
-    // If Billing Date is empty, set it to today
+    fetch("http://localhost:4000/licensees")
+      .then((res) => res.json())
+      .then((data) => setDynamicLicensees(data))
+      .catch((err) => console.error("Error fetching licensees:", err));
+  }, []);
+
+  useEffect(() => {
     if (!formData.Date_billed) {
       const today = new Date().toISOString().split('T')[0];
       setFormData((prev: any) => ({
@@ -267,7 +274,6 @@ export default function LocalForm({
 
   const getCoveredServiceOptions = () => {
     if (isNonDigital) {
-      // Since it's locked to Head Office, we only return that option
       return ["Head Office"];
     }
 
@@ -281,19 +287,20 @@ export default function LocalForm({
   const handleLocalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // SAVE TO JSON BACKEND IF NEW
     if (isNewContract && formData.Licensee && formData.Establishment) {
       try {
-        await fetch('http://localhost:5000/api/add-licensee', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch("http://localhost:4000/licensees", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             COMPANY: formData.Licensee,
             ESTABLISHMENT: formData.Establishment,
-            CATEGORY: formData.Category
+            CATEGORY: formData.Category,
           }),
         });
       } catch (error) {
-        console.error("Failed to save new licensee to JSON file:", error);
+        console.error("Failed to save licensee to JSON:", error);
       }
     }
 
@@ -745,7 +752,7 @@ export default function LocalForm({
           </div>
         </div>
         <datalist id="licensee-options">
-          {LICENSEE_DATA.map((item, index) => (
+          {dynamicLicensees.map((item, index) => (
             <option key={index} value={item.COMPANY} />
           ))}
         </datalist>

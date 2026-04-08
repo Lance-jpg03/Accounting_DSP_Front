@@ -6,7 +6,6 @@ import { getCookie } from "cookies-next";
 import Image from "next/image";
 import ForeignForm from "./foreignForm";
 import LocalForm from "./localForms";
-import { LICENSEE_DATA } from "./licenseeList";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
 
@@ -454,6 +453,8 @@ export default function DSPPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("User");
+  const [licenseeData, setLicenseeData] = useState<any[]>([]);
+const [dynamicLicensees, setDynamicLicensees] = useState<any[]>([]);
   const ROWS_PER_PAGE = 10;
 
   const initialFormState: DspData = {
@@ -529,6 +530,30 @@ export default function DSPPage() {
       }
     }
   }, [formData.Coverage_Start_Date, formData.Coverage_End_Date]);
+
+useEffect(() => {
+    const fetchData = async () => {
+      setTableLoading(true);
+      try {
+        const dspRes = await fetch(`${API_BASE}/api/dsp-records`);
+        if (dspRes.ok) {
+          const dspData = await dspRes.json();
+          setRecords(dspData);
+        }
+
+        const licRes = await fetch(`${API_BASE}/licensees`);
+        if (licRes.ok) {
+          const licData = await licRes.json();
+          setDynamicLicensees(licData);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setTableLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const exchangeRate =
@@ -748,20 +773,24 @@ export default function DSPPage() {
       return;
     }
 
-    setFormData((p: DspData) => {
-      let updated = { ...p, [name]: value };
+  setFormData((p: any) => {
+    let updated = { ...p, [name]: value };
 
-      if (name === "Licensee") {
-        const found = LICENSEE_DATA.find((item) => item.COMPANY === value);
-        if (found) {
-          updated.Category = found.CATEGORY;
-          updated.Establishment = found.ESTABLISHMENT;
-        }
+    if (name === "Licensee") {
+      const found = dynamicLicensees.find((item: any) => item.COMPANY === value);
+
+      if (found) {
+        updated.Category = found.CATEGORY;
+        updated.Establishment = found.ESTABLISHMENT;
+      } else {
+        updated.Category = "";
+        updated.Establishment = "";
       }
+    }
 
-      return updated;
-    });
-  };
+    return updated;
+  });
+};
 
   const handleEditClick = (record: DSPRecord) => {
     setEditingId(record.Collection_ID);
