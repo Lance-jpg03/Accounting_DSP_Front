@@ -401,6 +401,17 @@ export default function ForeignForm({
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
+    // If Billing Date is empty, set it to today
+    if (!formData.Date_billed) {
+      const today = new Date().toISOString().split('T')[0];
+      setFormData((prev: any) => ({
+        ...prev,
+        Date_billed: today,
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
     const role = localStorage.getItem("userRole");
     setUserRole(role);
   }, []);
@@ -479,12 +490,17 @@ export default function ForeignForm({
     }
   }, [formData.DSP, formData.Division, setFormData]);
 
-  // Logic for LIVE CONCERT/EVENT/ELECTION
   useEffect(() => {
     if (formData.Division === "Non-Digital" && formData.DSP === "Live Concert/Events/Election") {
       setFormData((prev: any) => ({
         ...prev,
         Covered_Service: "International"
+      }));
+    }
+    if (formData.Covered_Service !== "Head Office") {
+      setFormData((prev: any) => ({
+        ...prev,
+        Covered_Service: "Head Office"
       }));
     }
   }, [formData.DSP, formData.Division, setFormData]);
@@ -551,17 +567,17 @@ export default function ForeignForm({
     >
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end -mt-4">
         <Select
-          label="Origin"
-          name="Origin"
-          value={formData.Origin}
-          options={["Mono-territorial", "Multi-Territorial"]}
-          onChange={handleChange}
-        />
-        <Select
           label="Division"
           name="Division"
           value={formData.Division}
           options={["Non-Digital", "Digital"]}
+          onChange={handleChange}
+        />
+        <Select
+          label="Origin"
+          name="Origin"
+          value={formData.Origin}
+          options={["Mono-territorial", "Multi-Territorial"]}
           onChange={handleChange}
         />
         <Select
@@ -700,7 +716,13 @@ export default function ForeignForm({
 
         <div style={{ flex: "1 1 100%" }} className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40 flex flex-wrap items-center gap-6 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 flex-grow">
-            <DateInput label="Billing Date" name="Date_billed" value={formData.Date_billed} onChange={handleChange} />
+            <DateInput
+              label="Billing Date"
+              name="Date_billed"
+              value={formData.Date_billed}
+              onChange={handleChange}
+              disabled={true} 
+            />
             <Input
               label="SI#"
               name="SI#"

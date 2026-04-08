@@ -40,7 +40,6 @@ const Source_Type = [
   "Mechanical",
 ];
 
-// This list is now the designated Category list for Digital
 const dgCategories = [
   "Music Streaming",
   "Messaging Platform",
@@ -71,6 +70,12 @@ const CATEGORY_OPTIONS = [
   "Synchronization",
   "Mechanical",
 ];
+
+interface LicenseeEntry {
+  Category: string;
+  Company: string;
+  Establishment: string;
+}
 
 const SOURCE_CATEGORY_MAP: Record<string, string[]> = {
   Broadcast: ["Free TV", "Cable TV", "Radio"],
@@ -130,11 +135,21 @@ export default function LocalForm({
   DateInput,
 }: LocalFormProps) {
 
-  // Logic for Digital mapping
+  useEffect(() => {
+    // If Billing Date is empty, set it to today
+    if (!formData.Date_billed) {
+      const today = new Date().toISOString().split('T')[0];
+      setFormData((prev: any) => ({
+        ...prev,
+        Date_billed: today,
+      }));
+    }
+  }, []);
+
   useEffect(() => {
     if (formData.Division === "Digital" && formData.DSP) {
       const dsp = formData.DSP.toLowerCase();
-      let newSourceType = formData.DSP; // Source Type reflects the Source Name
+      let newSourceType = formData.DSP;
       let newCategory = formData.Category;
       let newCoveredService = formData.Covered_Service;
 
@@ -173,46 +188,33 @@ export default function LocalForm({
     }
   }, [formData.DSP, formData.Division, setFormData]);
 
-  // Logic for Non-Digital Mappings
   useEffect(() => {
     if (formData.Division === "Non-Digital") {
       let update: any = {};
 
+      if (formData.Covered_Service !== "Head Office") {
+        update.Covered_Service = "Head Office";
+      }
+
       if (formData.DSP === "Broadcast") {
         if (formData.Source_Type === "Terrestrial Television") {
           update.Category = "Free TV";
-          update.Covered_Service = "Licensed";
         } else if (formData.Source_Type === "Cable Television") {
           update.Category = "Cable TV";
-          update.Covered_Service = "Licensed";
         } else if (formData.Source_Type === "Radio Broadcast") {
           update.Category = "Radio";
-          update.Covered_Service = "AM/FM";
         }
-      }
-
-      if (formData.DSP === "Live Concert/Events") {
-        if (!["International", "Local"].includes(formData.Covered_Service)) {
-          update.Covered_Service = "Local";
-        }
-      }
-
-      if (formData.DSP === "General") {
-        update.Covered_Service = "Local";
       }
 
       if (formData.DSP === "Reproduction") {
         update.Category = formData.Source_Type === "Synchronization" ? "Synchronization" : "Mechanical";
-        if (!["Head Office", "Legal"].includes(formData.Covered_Service)) {
-          update.Covered_Service = "Head Office";
-        }
       }
 
       if (Object.keys(update).length > 0) {
         setFormData((prev: any) => ({ ...prev, ...update }));
       }
     }
-  }, [formData.Division, formData.DSP, formData.Source_Type, setFormData]);
+  }, [formData.Division, formData.DSP, formData.Source_Type, formData.Covered_Service, setFormData]);
 
   const [userRole, setUserRole] = useState<string | null>(null);
 
@@ -245,10 +247,11 @@ export default function LocalForm({
 
   const isNonDigital = formData.Division === "Non-Digital";
   const isLockedAfterSave = !!editingId;
+  const isNewContract = formData.Contract_Status === "New";
 
   const getFilteredCategories = () => {
     if (!isNonDigital) {
-      return dgCategories; // Use the specific list for Digital Categories
+      return dgCategories;
     }
     const typeSpecific = TYPE_TO_CATEGORY_MAP[formData.Source_Type];
     if (typeSpecific) return typeSpecific;
@@ -257,21 +260,15 @@ export default function LocalForm({
 
   const getFilteredSourceTypes = () => {
     if (!isNonDigital) {
-      return [formData.DSP || "Select Source First"]; // Reflects the selected Source (DSP)
+      return [formData.DSP || "Select Source First"];
     }
     return SOURCE_TYPE_FILTER_MAP[formData.DSP] || Source_Type;
   };
 
   const getCoveredServiceOptions = () => {
     if (isNonDigital) {
-      if (formData.DSP === "Broadcast") {
-        if (formData.Source_Type === "Radio Broadcast") return ["AM/FM"];
-        return ["Licensed", "Unlicensed"];
-      }
-      if (formData.DSP === "Live Concert/Events") return ["International", "Local"];
-      if (formData.DSP === "General") return ["Local"];
-      if (formData.DSP === "Reproduction") return ["Head Office", "Legal"];
-      return ["Head Office", "Cebu", "Legal"];
+      // Since it's locked to Head Office, we only return that option
+      return ["Head Office"];
     }
 
     const dsp = formData.DSP?.toLowerCase();
@@ -281,29 +278,50 @@ export default function LocalForm({
     return ["AVOD", "SVOD", "SHORTS", "OTT", "MUSIC"];
   };
 
+  const handleLocalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (isNewContract && formData.Licensee && formData.Establishment) {
+      try {
+        await fetch('http://localhost:5000/api/add-licensee', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            COMPANY: formData.Licensee,
+            ESTABLISHMENT: formData.Establishment,
+            CATEGORY: formData.Category
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to save new licensee to JSON file:", error);
+      }
+    }
+
+    handleSubmit(e);
+  };
+
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={handleLocalSubmit}
       className="bg-[#FFF9E5] p-2 shadow-xl rounded-md space-y-2 border border-yellow-200"
     >
       <fieldset className="contents">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 items-end">
           <div className="lg:col-span-1">
             <Select
-              label="Origin"
-              name="Origin"
-              value={formData.Origin}
-              options={["Mono-Territorial", "Multi-Territorial"]}
-              onChange={handleChange}
-            />
-          </div>
-
-          <div className="lg:col-span-1">
-            <Select
               label="Division"
               name="Division"
               options={["Digital", "Non-Digital"]}
               value={formData.Division}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="lg:col-span-1">
+            <Select
+              label="Origin"
+              name="Origin"
+              value={formData.Origin}
+              options={["Mono-Territorial", "Multi-Territorial"]}
               onChange={handleChange}
             />
           </div>
@@ -346,7 +364,7 @@ export default function LocalForm({
                   label="Contract Status"
                   name="Contract_Status"
                   value={formData.Contract_Status}
-                  options={["New", "Renewed",]}
+                  options={["New", "Renewed", "Auto-Renewal", "One-Off"]}
                   onChange={handleChange}
                 />
               </div>
@@ -357,6 +375,7 @@ export default function LocalForm({
                   value={formData.Licensee}
                   onChange={handleChange}
                   list="licensee-options"
+                  disabled={!isNewContract && !isAdmin}
                 />
               </div>
               <div className="lg:col-span-1">
@@ -365,7 +384,7 @@ export default function LocalForm({
                   name="Establishment"
                   value={formData.Establishment}
                   onChange={handleChange}
-                  disabled={true}
+                  disabled={!isNewContract}
                 />
               </div>
               <div className="lg:col-span-1">
@@ -384,7 +403,8 @@ export default function LocalForm({
                   value={formData.Covered_Service}
                   options={getCoveredServiceOptions()}
                   onChange={handleChange}
-                  disabled={formData.DSP === "General"}
+                  // NEW: Lock it completely for Non-Digital
+                  disabled={isNonDigital}
                 />
               </div>
               <div className="lg:col-span-1">
@@ -465,7 +485,7 @@ export default function LocalForm({
                   label="Contract Status"
                   name="Contract_Status"
                   value={formData.Contract_Status}
-                  options={["New", "Renewed", "Continuous"]}
+                  options={["New", "Renewed", "Auto-Renewal", "One-Off"]}
                   onChange={handleChange}
                 />
               </div>
@@ -476,6 +496,7 @@ export default function LocalForm({
                   value={formData.Licensee}
                   onChange={handleChange}
                   list="licensee-options"
+                  disabled={!isNewContract && !isAdmin}
                 />
               </div>
 
@@ -650,6 +671,7 @@ export default function LocalForm({
                 name="Date_billed"
                 value={formData.Date_billed}
                 onChange={handleChange}
+                disabled={true}
               />
               <Input
                 label="SI#"
