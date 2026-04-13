@@ -231,6 +231,8 @@ export default function LocalForm({
   }, []);
 
   const isAdmin = userRole === "1";
+  const isSubAdmin = userRole === "2";
+  const isUser = userRole === "3";
 
   useEffect(() => {
     if (formData.Origin === "Mono-Territorial") {
@@ -382,7 +384,7 @@ export default function LocalForm({
                   value={formData.Licensee}
                   onChange={handleChange}
                   list="licensee-options"
-                  disabled={!isNewContract && !isAdmin}
+                  disabled={!isNewContract && !isAdmin && !isSubAdmin && !isUser}
                 />
               </div>
               <div className="lg:col-span-1">
@@ -503,7 +505,7 @@ export default function LocalForm({
                   value={formData.Licensee}
                   onChange={handleChange}
                   list="licensee-options"
-                  disabled={!isNewContract && !isAdmin}
+                  disabled={!isNewContract && !isAdmin && !isSubAdmin && !isUser}
                 />
               </div>
 
@@ -727,7 +729,7 @@ export default function LocalForm({
             </div>
 
             <div className="flex flex-col gap-2 min-w-[200px]">
-              {editingId && isAdmin && (
+              {editingId && isAdmin && isSubAdmin && (
                 <button
                   type="button"
                   onClick={() => handleDelete(editingId)}
