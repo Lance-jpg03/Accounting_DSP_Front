@@ -453,9 +453,20 @@ export default function DSPPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>("User");
-  const [licenseeData, setLicenseeData] = useState<any[]>([]);
-const [dynamicLicensees, setDynamicLicensees] = useState<any[]>([]);
+  const [dynamicLicensees, setDynamicLicensees] = useState<any[]>([]);
   const ROWS_PER_PAGE = 10;
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [showAllLogs, setShowAllLogs] = useState(false);
+
+  // This filters notifications to only show those from the current date
+  const filteredNotifications = showAllLogs
+    ? notifications
+    : notifications.filter(n => {
+      const today = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Manila' });
+      // Checks if the timestamp string includes today's date
+      return n.time.includes(today);
+    });
 
   const initialFormState: DspData = {
     Coverage_Start_Date: "",
@@ -502,9 +513,18 @@ const [dynamicLicensees, setDynamicLicensees] = useState<any[]>([]);
   const [formData, setFormData] = useState<DspData>(initialFormState);
 
   useEffect(() => {
+    // 1. Get the role
     const role = localStorage.getItem("userRole");
     setUserRole(role);
+    const displayName = localStorage.getItem("username");
+    console.log("Storage Check - Role:", role, "Name:", displayName);
+    if (displayName) {
+      setDisplayName(displayName);
+    } else {
+      setDisplayName("Authorized User");
+    }
   }, []);
+
   const isAdmin = userRole === "1";
   const isSubAdmin = userRole === "2";
   const isUser = userRole === "3";
@@ -531,7 +551,7 @@ const [dynamicLicensees, setDynamicLicensees] = useState<any[]>([]);
     }
   }, [formData.Coverage_Start_Date, formData.Coverage_End_Date]);
 
-useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       setTableLoading(true);
       try {
@@ -773,24 +793,24 @@ useEffect(() => {
       return;
     }
 
-  setFormData((p: any) => {
-    let updated = { ...p, [name]: value };
+    setFormData((p: any) => {
+      let updated = { ...p, [name]: value };
 
-    if (name === "Licensee") {
-      const found = dynamicLicensees.find((item: any) => item.COMPANY === value);
+      if (name === "Licensee") {
+        const found = dynamicLicensees.find((item: any) => item.COMPANY === value);
 
-      if (found) {
-        updated.Category = found.CATEGORY;
-        updated.Establishment = found.ESTABLISHMENT;
-      } else {
-        updated.Category = "";
-        updated.Establishment = "";
+        if (found) {
+          updated.Category = found.CATEGORY;
+          updated.Establishment = found.ESTABLISHMENT;
+        } else {
+          updated.Category = "";
+          updated.Establishment = "";
+        }
       }
-    }
 
-    return updated;
-  });
-};
+      return updated;
+    });
+  };
 
   const handleEditClick = (record: DSPRecord) => {
     setEditingId(record.Collection_ID);
@@ -852,26 +872,24 @@ useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setGeneratedId(null);
 
-    let finalCollectionId = editingId;
-    if (!editingId) {
-      finalCollectionId = generateCollectionId(formData.DSP, records);
-    }
+    let finalCollectionId = editingId || generateCollectionId(formData.DSP, records);
 
     const dataToSubmit = {
       ...formData,
+      userName: displayName || "System",
       Collection_ID: finalCollectionId,
-      Gross: formData.Gross.replace(/,/g, ""),
-      Amount_Received: formData.Amount_Received.replace(/,/g, ""),
-      Bank_Charge: formData.Bank_Charge.replace(/,/g, ""),
-      Total_Amount: formData.Total_Amount.replace(/,/g, ""),
-      Peso_Value: formData.Peso_Value.replace(/,/g, ""),
-      Variance: formData.Variance.replace(/,/g, ""),
-      Exchange_Rate: formData.Exchange_Rate.replace(/,/g, ""),
+      Gross: formData.Gross.toString().replace(/,/g, ""),
+      Amount_Received: formData.Amount_Received.toString().replace(/,/g, ""),
+      Bank_Charge: formData.Bank_Charge.toString().replace(/,/g, ""),
+      Total_Amount: formData.Total_Amount.toString().replace(/,/g, ""),
+      Peso_Value: formData.Peso_Value.toString().replace(/,/g, ""),
+      Variance: formData.Variance.toString().replace(/,/g, ""),
+      Exchange_Rate: formData.Exchange_Rate.toString().replace(/,/g, ""),
     };
 
     const url = editingId ? `${API_BASE}/dsp/${editingId}` : `${API_BASE}/dsp`;
@@ -892,16 +910,33 @@ useEffect(() => {
       const result = await response.json();
       setGeneratedId(result.Collection_ID);
       setEditingId(null);
-
       setFormData(initialFormState);
 
       fetchDSP();
+      if (typeof fetchLogs === "function") fetchLogs();
+
       alert("Record saved successfully!");
     } catch (err: any) {
       console.error("Save failed", err);
       alert(`Save failed: ${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/logs`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.map((log: any) => ({
+          id: log.id,
+          message: `${log.user} ${log.action}: ${log.details}`,
+          time: log.timestamp
+        })));
+      }
+    } catch (err) {
+      console.error("Failed to fetch logs", err);
     }
   };
 
@@ -1286,7 +1321,9 @@ useEffect(() => {
               Unified Revenue Tracking System
             </div>
           </div>
+
           <div className="flex items-center gap-4">
+            {/* WELCOME SECTION */}
             <div className="flex flex-col items-end">
               <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">
                 Welcome, {displayName}
@@ -1296,6 +1333,78 @@ useEffect(() => {
                 {isAdmin ? " Administrator" : isSubAdmin ? "Data Editor" : isUser ? "View Only Access" : "Guest"}
               </span>
             </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifs(!showNotifs)}
+                className="relative p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all active:scale-90"
+              >
+                <Image
+                  src="/bell.png"
+                  alt="Notifications"
+                  width={25}
+                  height={25}
+                  className="brightness-0 invert"
+                />
+
+                {/* Using filteredNotifications.length for the badge count */}
+                {filteredNotifications.length > 0 && (
+                  <span className="absolute top-1 right-1 bg-yellow-400 text-[#004aad] text-[8px] font-black px-1.5 py-0.5 rounded-full border border-[#004aad]">
+                    {filteredNotifications.length}
+                  </span>
+                )}
+              </button>
+
+              {showNotifs && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowNotifs(false)}></div>
+                  <div className="absolute right-0 mt-3 w-80 bg-white rounded-lg shadow-2xl border border-gray-200 z-20 overflow-hidden animate-in fade-in zoom-in duration-200 origin-top-right">
+                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                      <span className="text-[10px] font-black text-[#004aad] uppercase tracking-wider">
+                        {showAllLogs ? "All Activity Logs" : "Today's Activity"}
+                      </span>
+
+                      {/* REPLACED CLEAR WITH TOGGLE */}
+                      <button
+                        onClick={() => setShowAllLogs(!showAllLogs)}
+                        className="text-[9px] font-black text-blue-600 hover:underline uppercase"
+                      >
+                        {showAllLogs ? "Show Today Only" : "Show All Logs"}
+                      </button>
+                    </div>
+
+                    <div className="max-h-80 overflow-y-auto">
+                      {filteredNotifications.length === 0 ? (
+                        <div className="px-4 py-8 text-center">
+                          <p className="text-[10px] text-gray-400 font-medium italic">
+                            {showAllLogs ? "No logs found" : "No activity recorded today"}
+                          </p>
+                        </div>
+                      ) : (
+                        filteredNotifications.map((n) => (
+                          <div key={n.id} className="px-4 py-3 hover:bg-blue-50/50 border-b border-gray-50 last:border-0">
+                            <p className="text-[11px] text-[#004aad] font-bold uppercase tracking-tighter mb-0.5">
+                              {n.user}
+                            </p>
+                            <p className="text-[11px] text-gray-700 leading-snug">{n.message}</p>
+                            <span className="text-[8px] text-gray-400 font-bold mt-1 block uppercase">
+                              {n.time}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Optional Footer info */}
+                    <div className="bg-gray-50 px-4 py-2 border-t border-gray-100 text-center">
+                      <span className="text-[8px] text-gray-400 font-bold uppercase">
+                        Total Records: {notifications.length}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={handleLogout}
