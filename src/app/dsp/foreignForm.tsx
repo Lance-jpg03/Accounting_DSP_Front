@@ -1,7 +1,7 @@
-import React, { useEffect } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 
 const SOCIETY_MAP: Record<string, string> = {
- AACIMH: "HN",
+  AACIMH: "HN",
   ABRAC: "BR",
   ABRAMUS: "BR",
   ACAM: "CR",
@@ -283,7 +283,7 @@ const SOCIETY_FULL_NAMES: Record<string, string> = {
   FIP: "French Association of Authors and Music Publishers",
   GCA: "Georgian Copyright Association",
   GEA: "Greek Association for the Collective Management of Performers' Rights",
-  GEMA: "Gesellschaft für musikalische Aufführungs- und mechanische Vervielfältigungsrechte",
+  GEMA: "Gesellschaft für musikalische Aufführungs- und mechanische Vervielfătigungsrechte",
   GESAC: "European Grouping of Societies of Authors and Composers",
   GESTOR: "The Union for the Protection of Authorship of Czech Republic",
   GHS: "Great Britain Health and Safety Executive",
@@ -370,14 +370,13 @@ const SOCIETY_FULL_NAMES: Record<string, string> = {
   "WID CENTRE": "WID Center"
 };
 
-const dgSource_type = [
+const dgCategories = [
   "Music Streaming",
   "Messaging Platform",
   "OTT",
   "Live-Streaming Platform",
   "User Uploaded Content",
   "Non-DSP",
-  "Others",
 ];
 
 export default function ForeignForm({
@@ -395,10 +394,33 @@ export default function ForeignForm({
   Select,
   Input,
   DateInput,
+  onCancel
 }: any) {
   const isDigital = formData.Division === "Digital";
   const isLockedAfterSave = !!editingId;
+  const [userRole, setUserRole] = useState<string | null>(null);
 
+  useEffect(() => {
+    // If Billing Date is empty, set it to today
+    if (!formData.Date_billed) {
+      const today = new Date().toISOString().split('T')[0];
+      setFormData((prev: any) => ({
+        ...prev,
+        Date_billed: today,
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    const role = localStorage.getItem("userRole");
+    setUserRole(role);
+  }, []);
+
+  // PERMISSION LOGIC
+  const isAdmin = userRole === "1";
+  const canDelete = isAdmin;
+
+  // 1. Origin Logic
   useEffect(() => {
     if (formData.Origin === "Multi-Territorial") {
       setFormData((prev: any) => ({
@@ -409,71 +431,53 @@ export default function ForeignForm({
     }
   }, [formData.Origin, setFormData]);
 
+  // 2. Society Auto-mapping & CLEAR LOGIC
   useEffect(() => {
+    if (!formData.Society || formData.Society === "" || formData.Society === "- SELECT -") {
+      setFormData((prev: any) => ({
+        ...prev,
+        Licensee: "",
+        Territory: "",
+      }));
+      return;
+    }
+
     if (formData.Society) {
       const updates: any = {};
       if (SOCIETY_MAP[formData.Society])
         updates.Territory = SOCIETY_MAP[formData.Society];
       if (SOCIETY_FULL_NAMES[formData.Society])
         updates.Licensee = SOCIETY_FULL_NAMES[formData.Society];
+
       if (Object.keys(updates).length > 0) {
         setFormData((prev: any) => ({ ...prev, ...updates }));
       }
     }
   }, [formData.Society, setFormData]);
 
-    useEffect(() => {
-    if (formData.Division === "Non-Digital") {
-      setFormData((prev: any) => {
-        if (prev.Society !== "" || prev.Licensee !== "") {
-          return {
-            ...prev,
-            Society: "",
-            Licensee: "",
-            Territory: "",
-          };
-        }
-        return prev;
-      });
-    }
-  }, [formData.Licensor, formData.Division, setFormData]);
-
   // 3. Digital Source/Category Logic
   useEffect(() => {
     if (formData.Division === "Digital" && formData.DSP) {
       const dsp = formData.DSP.toLowerCase();
-      let newSourceType = formData.Source_Type;
+      let newSourceType = formData.DSP; // Mirror Source to Source Type
       let newCategory = formData.Category;
       let newCoveredService = formData.Covered_Service;
 
       if (["youtube", "capcut", "tiktok"].some((s) => dsp.includes(s))) {
-        newSourceType = "User Uploaded Content";
-        newCategory = formData.DSP;
+        newCategory = "User Uploaded Content";
       } else if (
-        [
-          "disney",
-          "netflix",
-          "amazon",
-          "hbo",
-          "apple tv",
-          "hayu",
-          "huawei",
-        ].some((s) => dsp.includes(s))
+        ["disney", "netflix", "amazon", "hbo", "apple tv", "hayu", "huawei"].some((s) => dsp.includes(s))
       ) {
-        newSourceType = "OTT";
-        newCategory = formData.DSP;
+        newCategory = "OTT";
         newCoveredService = "OTT";
       } else if (dsp === "twitch" || dsp === "kumu") {
-        newSourceType = "Live-Streaming Platform";
-        newCategory = formData.DSP;
+        newCategory = "Live-Streaming Platform";
         newCoveredService = "MUSIC";
       } else if (dsp === "whatsapp") {
-        newSourceType = "Messaging Platform";
-        newCategory = formData.DSP;
+        newCategory = "Messaging Platform";
         newCoveredService = "MUSIC";
       } else if (dsp === "spotify" || dsp === "apple music") {
-        newSourceType = "Music Streaming";
-        newCategory = "Spotify";
+        newCategory = "Music Streaming";
         newCoveredService = "MUSIC";
       }
 
@@ -482,6 +486,21 @@ export default function ForeignForm({
         Source_Type: newSourceType,
         Category: newCategory,
         Covered_Service: newCoveredService,
+      }));
+    }
+  }, [formData.DSP, formData.Division, setFormData]);
+
+  useEffect(() => {
+    if (formData.Division === "Non-Digital" && formData.DSP === "Live Concert/Events/Election") {
+      setFormData((prev: any) => ({
+        ...prev,
+        Covered_Service: "International"
+      }));
+    }
+    if (formData.Covered_Service !== "Head Office") {
+      setFormData((prev: any) => ({
+        ...prev,
+        Covered_Service: "Head Office"
       }));
     }
   }, [formData.DSP, formData.Division, setFormData]);
@@ -515,20 +534,30 @@ export default function ForeignForm({
     setFormData,
   ]);
 
-  // Helper Functions
   const getFilteredSocieties = () => {
     if (formData.Licensor === "RME") return ["MINT", "MUSERK", "ESMAA"];
     return Society;
   };
 
   const getFilteredSourceTypes = () => {
-    return isDigital
-      ? dgSource_type
-      : ["Broadcast", "Live Concert/Events", "General", "Reproduction"];
+    if (isDigital) return [formData.DSP || "Select Source"]; // Mirror Source
+    if (formData.DSP === "Non-Society") return ["Foreign"];
+    if (formData.DSP === "Live Concert/Events/Election") return ["LIVE CONCERT/EVENT", "ONLINE EVENTS"];
+    return ["Broadcast", "Live Concert/Events/Election", "General", "Reproduction"];
   };
 
   const getFilteredCategories = () => {
-    return isDigital ? [formData.DSP] : [...DSP, "Non-DSP", "Others"];
+    if (isDigital) return dgCategories;
+    if (formData.DSP === "Non-Society") return ["Muserk", "Mint"];
+    if (formData.DSP === "Live Concert/Events/Election") return ["Concert/Event/Election"];
+    return [...DSP, "Non-DSP", "Others"];
+  };
+
+  const getCoveredServiceOptions = () => {
+    if (formData.Division === "Non-Digital" && formData.DSP === "Live Concert/Events/Election") {
+      return ["International"];
+    }
+    return ["Head Office", "Cebu", "Legal", "Election"];
   };
 
   return (
@@ -538,6 +567,13 @@ export default function ForeignForm({
     >
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-end -mt-4">
         <Select
+          label="Division"
+          name="Division"
+          value={formData.Division}
+          options={["Non-Digital", "Digital"]}
+          onChange={handleChange}
+        />
+        <Select
           label="Origin"
           name="Origin"
           value={formData.Origin}
@@ -545,21 +581,12 @@ export default function ForeignForm({
           onChange={handleChange}
         />
         <Select
-          label="Division"
-          name="Division"
-          value={formData.Division}
-          options={["Non-Digital", "Digital"]}
-          onChange={handleChange}
-        />
-
-        <Select
           label="Source"
           name="DSP"
           value={formData.DSP}
-          options={isDigital ? DSP : ["Society", "Non-Society"]}
+          options={isDigital ? DSP : ["Society", "Non-Society", "Live Concert/Events/Election"]}
           onChange={handleChange}
         />
-
         <Select
           label="Licensor"
           name="Licensor"
@@ -607,14 +634,14 @@ export default function ForeignForm({
           label="Covered Service"
           name="Covered_Service"
           value={formData.Covered_Service}
-          options={["Head Office", "Cebu", "Legal", "MUSIC", "OTT"]}
+          options={getCoveredServiceOptions()}
           onChange={handleChange}
         />
         <Select
           label="Rights Covered"
           name="Rights_Covered"
           value={formData.Rights_Covered}
-          options={["PR", "MR", "PR & MR"]}
+          options={["PR", "MR", "PR & MR", "Synch"]}
           onChange={handleChange}
         />
         <DateInput
@@ -639,11 +666,7 @@ export default function ForeignForm({
       </div>
 
       <div className="flex flex-wrap gap-4">
-        {/* Period Covered */}
-        <div
-          style={{ flex: "200px" }}
-          className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
-        >
+        <div style={{ flex: "1 1 200px" }} className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40">
           <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30">
             Period Covered
           </h3>
@@ -669,11 +692,7 @@ export default function ForeignForm({
           </div>
         </div>
 
-        {/* Payment Information */}
-        <div
-          style={{ flex: "550px" }}
-          className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40"
-        >
+        <div style={{ flex: "1 1 550px" }} className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40">
           <h3 className="font-bold text-sm text-[#004aad] mb-3 uppercase border-b border-yellow-400/30">
             Payment Information
           </h3>
@@ -684,96 +703,50 @@ export default function ForeignForm({
               value={formData.Date_Received}
               onChange={handleChange}
             />
-            <Input
-              label="Currency"
-              name="Currency"
-              value={formData.Currency}
-              disabled={true}
-            />
-            <Input
-              label="Amount Received"
-              name="Amount_Received"
-              value={formData.Amount_Received}
-              onChange={handleChange}
-            />
-            <Input
-              label=" %VAT"
-              name="%VAT"
-              value={formData["%VAT"]}
-              onChange={handleChange}
-            />
-            <Input
-              label="Total Gross"
-              name="Total_Gross_Amount"
-              value={formData.Total_Gross_Amount}
-              disabled={true}
-            />
-            <Input
-              label="Exchange Rate"
-              name="Exchange_Rate"
-              value={formData.Exchange_Rate}
-              onChange={handleChange}
-            />
-            <Input
-              label="PHP Amount"
-              name="Peso_Value"
-              value={formData.Peso_Value}
-              disabled={true}
-            />
-            <Input
-              label="CWT"
-              name="CWT"
-              value={formData.CWT}
-              onChange={handleChange}
-            />
-            <Input
-              label="Total Amount"
-              name="Total_Amount"
-              value={formData.Total_Amount}
-              disabled={true}
-            />
+            <Input label="Currency" name="Currency" value={formData.Currency} disabled={true} />
+            <Input label="Amount Received" name="Amount_Received" value={formData.Amount_Received} onChange={handleChange} />
+            <Input label=" %VAT" name="%VAT" value={formData["%VAT"]} onChange={handleChange} />
+            <Input label="Total Gross" name="Total_Gross_Amount" value={formData.Total_Gross_Amount} disabled={true} />
+            <Input label="Exchange Rate" name="Exchange_Rate" value={formData.Exchange_Rate} onChange={handleChange} />
+            <Input label="PHP Amount" name="Peso_Value" value={formData.Peso_Value} disabled={true} />
+            <Input label="CWT" name="CWT" value={formData.CWT} onChange={handleChange} />
+            <Input label="Total Amount" name="Total_Amount" value={formData.Total_Amount} disabled={true} />
           </div>
         </div>
 
-        {/* Status and Actions */}
-        <div
-          style={{ flex: "1 1 100%" }}
-          className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40 flex flex-wrap items-center gap-6 shadow-sm"
-        >
+        <div style={{ flex: "1 1 100%" }} className="border-2 border-yellow-400/30 rounded-lg p-2 bg-white/40 flex flex-wrap items-center gap-6 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 flex-grow">
             <DateInput
               label="Billing Date"
               name="Date_billed"
               value={formData.Date_billed}
               onChange={handleChange}
+              disabled={true} 
             />
             <Input
               label="SI#"
               name="SI#"
               value={formData["SI#"]}
               onChange={handleChange}
-              disabled={!formData.Date_billed || isLockedAfterSave}
+              disabled={
+                !formData.Date_billed ||
+                formData.Date_billed === "" ||
+                isLockedAfterSave
+              }
             />
             <Input
               label="BI#"
               name="BI#"
               value={formData["BI#"]}
               onChange={handleChange}
-              disabled={!formData.Date_billed || isLockedAfterSave}
+              disabled={
+                !formData.Date_billed ||
+                formData.Date_billed === "" ||
+                isLockedAfterSave
+              }
             />
-            <Input
-              label="Remarks"
-              name="Licensing_Remarks"
-              value={formData.Licensing_Remarks}
-              onChange={handleChange}
-              disabled={isLockedAfterSave}
-            />
-            <Input
-              label="Variance"
-              name="Variance"
-              value={formData.Variance}
-              disabled={true}
-            />
+            <Input label="Remarks" name="Licensing_Remarks" value={formData.Licensing_Remarks} onChange={handleChange} disabled={isLockedAfterSave} />
+            <Input label="Variance" name="Variance" value={formData.Variance} disabled={true} />
           </div>
 
           <div className="flex flex-col items-center">
@@ -786,19 +759,20 @@ export default function ForeignForm({
           </div>
 
           <div className="flex flex-col gap-2 min-w-[200px]">
-            {editingId && (
+            {editingId && canDelete && (
               <button
                 type="button"
                 onClick={() => handleDelete(editingId)}
-                className="w-full bg-red-500 hover:bg-red-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95"
+                className="w-full bg-red-500 hover:bg-red-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400 cursor-pointer"
               >
                 Delete Row
               </button>
             )}
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#004aad] hover:bg-blue-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400"
+              className="w-full bg-[#004aad] hover:bg-blue-800 text-white font-black py-1 px-4 rounded-lg uppercase transition-all active:scale-95 disabled:bg-gray-400 cursor-pointer"
             >
               {loading
                 ? "Processing..."
